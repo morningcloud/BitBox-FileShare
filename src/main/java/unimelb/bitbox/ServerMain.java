@@ -20,6 +20,7 @@ public class ServerMain implements FileSystemObserver {
 	@Override
 	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
 		// TODO: process events
+		log.info(String.format("Event Raised. EventType: %s FileName: '%s' Path: '%s'", fileSystemEvent.event.toString(), fileSystemEvent.name, fileSystemEvent.path));
 	}
 	
 }
