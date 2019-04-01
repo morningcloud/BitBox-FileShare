@@ -18,6 +18,7 @@ public class Message {
 	private boolean isSuccessStatus;
 	private String md5;
 	private String lastModified;
+
 	private int fileSize;
 	private int position;
 	private int length;
@@ -36,18 +37,98 @@ public class Message {
 		String commandStr = command.name();
 		return ""; //Use Document class to construct a message to be transfered
 	}
+	
+	public Command getCommand() {
+		return command;
+	}
+
+	public void setCommand(Command command) {
+		this.command = command;
+	}
+
+	public String getMessage() {
+		return message;
+	}
+
+	public void setMessage(String message) {
+		this.message = message;
+	}
+
+	public String getPathName() {
+		return pathName;
+	}
+
+	public void setPathName(String pathName) {
+		this.pathName = pathName;
+	}
+
+	public boolean isSuccessStatus() {
+		return isSuccessStatus;
+	}
+
+	public void setSuccessStatus(boolean isSuccessStatus) {
+		this.isSuccessStatus = isSuccessStatus;
+	}
+
+	public String getMd5() {
+		return md5;
+	}
+
+	public void setMd5(String md5) {
+		this.md5 = md5;
+	}
+
+	public String getLastModified() {
+		return lastModified;
+	}
+
+	public void setLastModified(String lastModified) {
+		this.lastModified = lastModified;
+	}
+
+	public int getFileSize() {
+		return fileSize;
+	}
+
+	public void setFileSize(int fileSize) {
+		this.fileSize = fileSize;
+	}
+
+	public int getPosition() {
+		return position;
+	}
+
+	public void setPosition(int position) {
+		this.position = position;
+	}
+
+	public int getLength() {
+		return length;
+	}
+
+	public void setLength(int length) {
+		this.length = length;
+	}
+
+	public List<HostPort> getPeersList() {
+		return peersList;
+	}
+
+	public void setPeersList(List<HostPort> peersList) {
+		this.peersList = peersList;
+	}
 
 	public String getContent() {
 		return content;
 	}
 	
-	public void setcontent(byte[] binaryData) {
+	public void setContent(byte[] binaryData) {
 		content = Base64.encodeBase64String(binaryData);
 		this.setBinaryData(binaryData);
 	}
 
-	public void setcontent(String content) {
-		content = content;
+	public void setContent(String content) {
+		this.content = content;
 	}
 
 	public byte[] getBinaryData() {
