@@ -20,9 +20,22 @@ public class ServerMain implements FileSystemObserver {
     int connectionCount = 0;
     int MAX_NO_OF_CONNECTION=5;
     ServerSocket serverSocket=null;
+    private String serverName;
+	private int serverPort;
 	
 	public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
+		runServer();
+		
+	}
+	
+	public ServerMain(String serverName, String serverPort) throws NumberFormatException, IOException, NoSuchAlgorithmException {
+		if (serverName!="" & serverPort!="")
+		{
+			this.serverName = serverName;
+			this.serverPort = Integer.parseInt(serverPort);
+		}
+		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);		
 	}
 
 	@Override
