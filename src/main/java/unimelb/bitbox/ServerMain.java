@@ -36,6 +36,7 @@ public class ServerMain implements FileSystemObserver {
 			this.serverPort = Integer.parseInt(serverPort);
 		}
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);		
+		new Server();
 	}
 
 	@Override
