@@ -1,7 +1,7 @@
 package unimelb.bitbox;
 
 import java.util.LinkedList;
-
+import java.util.ArrayList;
 import unimelb.bitbox.util.Constants;
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.Constants.Command;
@@ -17,7 +17,7 @@ public class Protocol
 	
 	Constants constants = new Constants();
 	
-	public <T> String createMessage(Constants.Command command, LinkedList<T> args)
+	public <T> String createMessage(Constants.Command command, ArrayList<T> args)
 	{
 		Document message = null;
 		if (command == Constants.Command.INVALID_PROTOCOL)
@@ -30,6 +30,10 @@ public class Protocol
 		{
 			 message = new Document();
 			 Document subMessage = new Document();
+			 for (T k: args)
+			 {
+				 //subMessage.append("host", k.);
+			 }
 			 
 			 message.append("command", "HANDSHAKE_REQUEST");
 			 subMessage.append("host",this.main.serverName);
@@ -38,6 +42,13 @@ public class Protocol
 		}
 		if (command == Constants.Command.CONNECTION_REFUSED)
 		{
+			 message = new Document();
+			 Document subMessage = new Document();
+			 subMessage.append("peers", args);
+			 message.append("command", "HANDSHAKE_REQUEST");
+			 subMessage.append("host",this.main.serverName);
+			 subMessage.append("port", this.main.serverPort);
+			 message.append("hostPort", subMessage);
 			
 		}
 		return message.toJson();

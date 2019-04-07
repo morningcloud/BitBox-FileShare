@@ -7,7 +7,7 @@ import java.util.logging.Logger;
 import unimelb.bitbox.util.*;
 
 public class TransportAgent {
-	private int MAX_NO_OF_CONNECTION;
+	int MAX_NO_OF_CONNECTION;
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	ArrayList<Connection> connectedPeers = new ArrayList<Connection>();
 	
@@ -19,22 +19,7 @@ public class TransportAgent {
 	{
 		if (socket!=null)
 		{
-			if (connectedPeers.size()<this.MAX_NO_OF_CONNECTION)
-			{
-				this.connectedPeers.add(new Connection(socket));
-			}
-			else
-			{
-				try
-				{
-					
-				}
-				catch (Exception e)
-				{
-					
-				}
-			}
-			
+			new Connection(socket);
 		}
 		
 	}
@@ -133,6 +118,26 @@ public class TransportAgent {
 			try
 			{
 				System.out.println("Starting protocol..");
+				if (connectedPeers.size()<MAX_NO_OF_CONNECTION)
+				{
+					connectedPeers.add(new Connection(socket));
+				}
+				else
+				{
+					try
+					{
+						String msg = "";
+						
+						this.out.writeUTF(msg);
+						
+					}
+					catch (Exception e)
+					{
+						
+					}
+				}
+				
+
 				Document receivedMsg = Document.parse(in.readUTF());
 				//System.out.println("doc received:"+receivedMsg.toJson());
 				//System.out.println("is valid: "+Protocol.validate(receivedMsg));

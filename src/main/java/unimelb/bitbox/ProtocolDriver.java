@@ -2,23 +2,28 @@ package unimelb.bitbox;
 
 import unimelb.bitbox.util.Constants.Command;
 import unimelb.bitbox.util.*;
-
+import java.util.*;
+import unimelb.bitbox.util.*;
 public class ProtocolDriver {
 
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
 		
-		String m = "{\"hostPort\":{\"port\":8111,\"host\":\"localhost\"},\"command\":\"HANDSHAKE_REQUESTY\"}";
-		Document d = Document.parse(m);
-		Document c = (Document) d.get("hostPort");
-		System.out.println(c.getString("host"));
-		//System.out.println(d.getString("hostPort"));
+		ArrayList<Document> peerList = new ArrayList<Document>();
 		
-		System.out.println(Protocol.validate(Document.parse(m)));
-
+		int i = 0;
+		while (i<3)
+		{
+			HostPort h = new HostPort("localhost"+i,8000+i);
+			peerList.add(h.toDoc());
+			i++;
+		}
 		
 		
-
+		
+		Document m = new Document();
+		
+		m.append("peer", peerList);
+		
+		System.out.println(m.toJson());
 	}
-
 }
