@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.logging.Logger;
 import java.net.Socket;
 import unimelb.bitbox.util.Configuration;
+import unimelb.bitbox.util.Constants;
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.HostPort;
 import java.net.*;
@@ -18,23 +19,28 @@ public class Peer
 	private ArrayList<HostPort> peerList = new ArrayList<HostPort>();
     DataInputStream in;
     DataOutputStream out;
-	public static void main( String[] args ) throws IOException, NumberFormatException, NoSuchAlgorithmException
+	public String serverName;
+	public int serverPort;
+	Protocol protocol= new Protocol(this);
+    public static void main( String[] args ) throws IOException, NumberFormatException, NoSuchAlgorithmException
     {
         //Skeleton code - Begin
     	System.setProperty("java.util.logging.SimpleFormatter.format",
                 "[%1$tc] %2$s %4$s: %5$s%n");
         log.info("BitBox Peer starting...");
         Configuration.getConfiguration();
-
-        String serverName = Configuration.getConfigurationValue("advertisedName");
-        String serverPort = Configuration.getConfigurationValue("port");
         Peer agent = new Peer();
+        
+        agent.serverPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
+        
+        agent.serverName = Configuration.getConfigurationValue("advertisedName");
+        
         agent.parsePeerEntry(Configuration.getConfigurationValue("peers"));
         System.out.println("Peers list:");
     	System.out.println("-----------");
         for (HostPort h: agent.peerList) System.out.printf("%s:%s\n",h.host,h.port);
         agent.connect();
-        new ServerMain(serverName,serverPort);
+        new ServerMain(agent.serverName,agent.serverPort);
         
     }
     /**
@@ -82,31 +88,38 @@ public class Peer
     			eol = true;
         	}
     		
-    		
-    		if (connected)
+    		try
     		{
-    			in = new DataInputStream(socket.getInputStream());
-    			out = new DataOutputStream(socket.getOutputStream());
-    			//log.info("Sending data..");
-    			System.out.println("Starting protocol..");
-    			int msgCounter=0;
-    			while (true)
+    			if (socket.isConnected())
     			{
-        			System.out.println("Connection still alive.."+msgCounter);
-        			Thread.sleep(3000);
-        			/*
-    				out.writeUTF("Test "+msgCounter);
-        			//log.info("Receiving data..");
-        			//log.info("Received:"+in.readUTF());
-        			System.out.println("Receiving data..");
-        			System.out.println("Received: "+in.readUTF());
-        			
-        			*/
-        			msgCounter++;
+        			in = new DataInputStream(socket.getInputStream());
+        			out = new DataOutputStream(socket.getOutputStream());
+        			//log.info("Sending data..");
+        			System.out.println("Starting protocol..");
+        			int msgCounter=0;
+        			out.writeUTF(this.protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST,null));
+        			while (socket.isConnected())
+        			{
+            			System.out.println("Connection still alive.."+msgCounter);
+            			Thread.sleep(3000);
+        				//log.info("Received:"+in.readUTF());
+        				/*
+        				//log.info("Receiving data..");
+            			
+            			System.out.println("Receiving data..");
+            			System.out.println("Received: "+in.readUTF());
+            			
+            			*/
+            			msgCounter++;
+        			}
     			}
+    			
+    		}
+    		catch (Exception e)
+    		{
+    			log.severe(e.getMessage());
     		}
     	}
-    	
     	catch (Exception e)
     	{
     		System.out.println("Peer connection error:"+e.getMessage());

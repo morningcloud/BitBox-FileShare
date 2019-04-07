@@ -118,6 +118,21 @@ public class TransportAgent {
 			{
 				e.printStackTrace();
 			}
+			
+			finally
+			{
+				try
+				{
+					if (this.socket!=null) socket.close();
+					if (this.in!=null) in.close();
+					if (this.out!=null) out.close();
+						
+				}
+				catch (Exception e)
+				{
+					log.severe(e.getMessage());
+				}
+			}
 		}
 	}
 

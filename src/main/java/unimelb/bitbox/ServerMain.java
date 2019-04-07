@@ -23,11 +23,11 @@ public class ServerMain implements FileSystemObserver {
     private String serverName;
 	private int serverPort;
 	
-	public ServerMain(String serverName, String serverPort) throws NumberFormatException, IOException, NoSuchAlgorithmException {
-		if (serverName!="" & serverPort!="")
+	public ServerMain(String serverName, int serverPort) throws NumberFormatException, IOException, NoSuchAlgorithmException {
+		if (serverName!="" & serverPort!=-1)
 		{
 			this.serverName = serverName;
-			this.serverPort = Integer.parseInt(serverPort);
+			this.serverPort = serverPort;
 		}
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);		
 		this.transportAgent = new TransportAgent();
@@ -64,7 +64,7 @@ public class ServerMain implements FileSystemObserver {
 		}
 		catch (IOException ex) 
 		{
-			log.log(Level.SEVERE, null, ex);
+			log.severe(ex.getMessage());
 		}
 
 		catch (Exception e)
