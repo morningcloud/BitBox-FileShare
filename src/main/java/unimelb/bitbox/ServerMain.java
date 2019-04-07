@@ -17,7 +17,7 @@ public class ServerMain implements FileSystemObserver {
 	protected FileSystemManager fileSystemManager;
 	public TransportAgent transportAgent;
     int connectionCount = 0;
-    int MAX_NO_OF_CONNECTION=5;
+    
     ServerSocket serverSocket=null;
     
     private String serverName;
@@ -29,8 +29,10 @@ public class ServerMain implements FileSystemObserver {
 			this.serverName = serverName;
 			this.serverPort = serverPort;
 		}
+		Configuration.getConfiguration();
+		int maxInboundConnections = Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"));
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);		
-		this.transportAgent = new TransportAgent();
+		this.transportAgent = new TransportAgent(maxInboundConnections);
 		runServer();
 	}
 
@@ -44,7 +46,7 @@ public class ServerMain implements FileSystemObserver {
     
     public void runServer()
     {
-		Socket clientSocket;
+    	Socket clientSocket;
 		try
 		{
 			this.serverSocket = new ServerSocket(this.serverPort);
@@ -52,14 +54,11 @@ public class ServerMain implements FileSystemObserver {
 			while (true)
 			{
 				clientSocket = this.serverSocket.accept();
-				if (this.transportAgent.connectedPeers.size()<this.MAX_NO_OF_CONNECTION)
-				{
-					this.transportAgent.addConnection(clientSocket);
-					log.info(String.format("Connected to: %s, total number of established connections: %s\n",
-							clientSocket.getInetAddress().getHostName(),
-							this.transportAgent.connectedPeers.size()
-							));
-				}
+				this.transportAgent.addConnection(clientSocket);
+				log.info(String.format("Connected to: %s, total number of established connections: %s\n",
+						clientSocket.getInetAddress().getHostName(),
+						this.transportAgent.connectedPeers.size()
+						));
 			}
 		}
 		catch (IOException ex) 
@@ -74,11 +73,14 @@ public class ServerMain implements FileSystemObserver {
 		
 		finally
 		{
-			for (String peer: this.transportAgent.getPeerList())
+			try
 			{
-				log.info("Disconnecting form "+peer);
+				if (this.serverSocket!=null) this.serverSocket.close();
 			}
-				
+			catch (Exception e)
+			{
+				System.out.println(e.getMessage());
+			}
 		}
     }
 }

@@ -22,6 +22,7 @@ public class Peer
 	public String serverName;
 	public int serverPort;
 	Protocol protocol= new Protocol(this);
+	
     public static void main( String[] args ) throws IOException, NumberFormatException, NoSuchAlgorithmException
     {
         //Skeleton code - Begin
@@ -29,18 +30,20 @@ public class Peer
                 "[%1$tc] %2$s %4$s: %5$s%n");
         log.info("BitBox Peer starting...");
         Configuration.getConfiguration();
+        
         Peer agent = new Peer();
-        
         agent.serverPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
-        
         agent.serverName = Configuration.getConfigurationValue("advertisedName");
-        
         agent.parsePeerEntry(Configuration.getConfigurationValue("peers"));
+        
         System.out.println("Peers list:");
     	System.out.println("-----------");
-        for (HostPort h: agent.peerList) System.out.printf("%s:%s\n",h.host,h.port);
-        agent.connect();
-        new ServerMain(agent.serverName,agent.serverPort);
+        
+    	for (HostPort h: agent.peerList) System.out.printf("%s:%s\n",h.host,h.port);
+    	agent.connect();
+    	new ServerMain(agent.serverName,agent.serverPort);
+    	
+        
         
     }
     /**
@@ -55,12 +58,14 @@ public class Peer
     
     private void connect()
     {
+    	
     	Socket socket =null;
     	boolean connected = false;
     	boolean eol = false;
     	try
     	{
         	//Looping through the list of peers
+    		
     		while (!connected & !eol)
         	{
     			int peerIndex=0;
@@ -87,21 +92,35 @@ public class Peer
     			}
     			eol = true;
         	}
-    		
+    		if (eol & !connected)
+    		{
+    			log.warning("No peers available to connect to!");
+    		}
     		try
     		{
     			if (socket.isConnected())
     			{
-        			in = new DataInputStream(socket.getInputStream());
+    				in = new DataInputStream(socket.getInputStream());
         			out = new DataOutputStream(socket.getOutputStream());
         			//log.info("Sending data..");
+        			
         			System.out.println("Starting protocol..");
-        			int msgCounter=0;
+        			//int msgCounter=0;
         			out.writeUTF(this.protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST,null));
-        			while (socket.isConnected())
+        			Document receivedMsg = Document.parse(in.readUTF());
+        			if (Protocol.validate(receivedMsg))
         			{
-            			System.out.println("Connection still alive.."+msgCounter);
-            			Thread.sleep(3000);
+        				
+        			}
+        				
+        			else
+        				System.out.println("message invalid");
+
+        			//while (!socket.isClosed())
+        			while (true)	
+        			{
+        				
+        				
         				//log.info("Received:"+in.readUTF());
         				/*
         				//log.info("Receiving data..");
@@ -110,15 +129,20 @@ public class Peer
             			System.out.println("Received: "+in.readUTF());
             			
             			*/
-            			msgCounter++;
+            			//msgCounter++;
         			}
     			}
     			
     		}
-    		catch (Exception e)
+    		catch (NullPointerException m)
     		{
-    			log.severe(e.getMessage());
+    			log.warning("socket is not open");
     		}
+    		catch (Exception z)
+    		{
+    			log.warning(z.getMessage());
+    		}
+    		
     	}
     	catch (Exception e)
     	{

@@ -4,16 +4,37 @@ import java.net.*;
 import java.io.*;
 import java.util.*;
 import java.util.logging.Logger;
+import unimelb.bitbox.util.*;
 
 public class TransportAgent {
-	
+	private int MAX_NO_OF_CONNECTION;
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	ArrayList<Connection> connectedPeers = new ArrayList<Connection>();
+	
+	public TransportAgent(int maxNoOfConnections)
+	{
+		this.MAX_NO_OF_CONNECTION = maxNoOfConnections;
+	}
 	public void addConnection(Socket socket)
 	{
 		if (socket!=null)
 		{
-			this.connectedPeers.add(new Connection(socket));
+			if (connectedPeers.size()<this.MAX_NO_OF_CONNECTION)
+			{
+				this.connectedPeers.add(new Connection(socket));
+			}
+			else
+			{
+				try
+				{
+					
+				}
+				catch (Exception e)
+				{
+					
+				}
+			}
+			
 		}
 		
 	}
@@ -58,6 +79,10 @@ public class TransportAgent {
 			}
 		}
 		
+		/**
+		 * Retrieves connected peer's host name.
+		 * @return
+		 */
 		public String getHostName()
 		{
 			String name=null;
@@ -73,6 +98,10 @@ public class TransportAgent {
 			return name;		
 		}
 		
+		/**
+		 * Retrieves connected peer's port number.
+		 * @return
+		 */
 		public int getPortNumber()
 		{
 			int port=-1;
@@ -88,10 +117,15 @@ public class TransportAgent {
 			return port;		
 		}
 		
+		/**
+		 * Constructs peer name and port number separated by ":"
+		 * @return
+		 */
 		public String getPeerName()
 		{
 			return this.getHostName()+":"+this.getPortNumber();
 		}
+		
 		
 		@Override
 		public void run()
@@ -99,14 +133,30 @@ public class TransportAgent {
 			try
 			{
 				System.out.println("Starting protocol..");
-				int msgCounter=0;
-				while (true)
+				Document receivedMsg = Document.parse(in.readUTF());
+				//System.out.println("doc received:"+receivedMsg.toJson());
+				//System.out.println("is valid: "+Protocol.validate(receivedMsg));
+				
+				if (Protocol.validate(receivedMsg))
 				{
-					String dataIn = in.readUTF();
-					System.out.println("Server received: "+dataIn);
-					System.out.println("Server writing started..");
-					out.writeUTF("ACK ("+dataIn+msgCounter+")");	
+					
+					//out.writeUTF("");
+					int msgCounter=0;
+					while (true)
+					{
+						String dataIn = in.readUTF();
+						System.out.println("Server received: "+dataIn);
+						System.out.println("Server writing started..");
+						out.writeUTF("ACK ("+dataIn+msgCounter+")");	
+					}
 				}
+				else
+				{
+					out.writeUTF(Protocol.INVALID_PROTOCOL);
+					log.warning("Invalid protocol received, closing connection..");
+					this.socket.close();
+				}
+				//receivedMsg.toJson
 			}
 			
 			catch (SocketException e)
