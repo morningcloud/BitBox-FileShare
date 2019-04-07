@@ -15,19 +15,13 @@ import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 public class ServerMain implements FileSystemObserver {
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	protected FileSystemManager fileSystemManager;
-
-    int portNumber = 9831;
+	public TransportAgent transportAgent;
     int connectionCount = 0;
     int MAX_NO_OF_CONNECTION=5;
     ServerSocket serverSocket=null;
+    
     private String serverName;
 	private int serverPort;
-	
-	public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
-		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
-		runServer();
-		
-	}
 	
 	public ServerMain(String serverName, String serverPort) throws NumberFormatException, IOException, NoSuchAlgorithmException {
 		if (serverName!="" & serverPort!="")
@@ -36,37 +30,55 @@ public class ServerMain implements FileSystemObserver {
 			this.serverPort = Integer.parseInt(serverPort);
 		}
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);		
-		new Server();
+		this.transportAgent = new TransportAgent();
+		runServer();
 	}
 
 	@Override
-	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
+	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) 
+	{
 		// TODO: process events Check event type and process
-
-		log.info(String.format("Event Raised. EventType: %s FileName: '%s' Path: '%s'", fileSystemEvent.event.toString(), fileSystemEvent.name, fileSystemEvent.path));
+		log.info(String.format("Event Raised. EventType: %s FileName: '%s' Path: '%s'", 
+				fileSystemEvent.event.toString(), fileSystemEvent.name, fileSystemEvent.path));
 	}
     
-	//BELOW IS A DUMMY CODE
-    public void runServer(){
-        try {
-            serverSocket = new ServerSocket(portNumber);
-            serverSocket.setReuseAddress(true); //to be able to rerun the program on the same port directly as it may not directly get released
-            
-            while(true){
-                if (connectionCount < MAX_NO_OF_CONNECTION){
-                    Socket clientSocket = serverSocket.accept();
-                    System.out.println("New Client Connection established. "+clientSocket.getInetAddress().getHostAddress());
-                    Thread th= new Thread(new ServerRunnable(clientSocket));
-                    th.start();
-                    connectionCount++;
-                    System.out.println("Active Connections: "+connectionCount);
-                }
-            }
-            
-        } catch (IOException ex) {
-            log.log(Level.SEVERE, null, ex);
-        }
-        
+    public void runServer()
+    {
+		Socket clientSocket;
+		try
+		{
+			this.serverSocket = new ServerSocket(this.serverPort);
+			System.out.println("Server started, listening at "+serverPort);
+			while (true)
+			{
+				clientSocket = this.serverSocket.accept();
+				if (this.transportAgent.connectedPeers.size()<this.MAX_NO_OF_CONNECTION)
+				{
+					this.transportAgent.addConnection(clientSocket);
+					log.info(String.format("Connected to: %s, total number of established connections: %s\n",
+							clientSocket.getInetAddress().getHostName(),
+							this.transportAgent.connectedPeers.size()
+							));
+				}
+			}
+		}
+		catch (IOException ex) 
+		{
+			log.log(Level.SEVERE, null, ex);
+		}
+
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		
+		finally
+		{
+			for (String peer: this.transportAgent.getPeerList())
+			{
+				log.info("Disconnecting form "+peer);
+			}
+				
+		}
     }
-	
 }

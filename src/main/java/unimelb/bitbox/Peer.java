@@ -33,47 +33,9 @@ public class Peer
         System.out.println("Peers list:");
     	System.out.println("-----------");
         for (HostPort h: agent.peerList) System.out.printf("%s:%s\n",h.host,h.port);
-        
-        //new ServerMain();
-        new ServerMain(serverName,serverPort);
         agent.connect();
-        //Skeleton code - End
+        new ServerMain(serverName,serverPort);
         
-    	//This adds a handler to the shutdown event... 
-        //Possible use, before shutting send a message to clients with this peer's server IP so they reconnect to it instead
-    	//May not work with kill command!!
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            public void run() {
-                log.warning("Application closing!!! Do cleanup");
-            }
-        }));
-        
-        log.info("Configuration maximumIncommingConnections= "+Configuration.getConfigurationValue("maximumIncommingConnections"));
-                
-        /*
-        Document doc1 = new Document();
-        doc1.append("host","localhost");
-        doc1.append("port",8111);
-        String host = doc1.getString("host");
-        int port = doc1.getInteger("port");
-        
-        String json1 = doc1.toJson(); // convert Document to a JSON String
-        
-        Document doc2 = Document.parse(json1); // convert JSON String back to Document
-        ArrayList<Document> docs = new ArrayList<Document>();
-        docs.add(doc1);
-        docs.add(doc2);
-        
-        Document doc3 = new Document();
-        doc3.append("docList",docs);
-        doc3.toJson(); // {"docList":[{"host":"localhost","port":8111},{"host":"localhost","port":8111}]}
-
-        log.info("doc1: "+doc1.toJson());
-        log.info("doc2: "+doc2.toJson());
-        log.info("doc3: "+doc3.toJson());
-        log.info("doc3 List: "+doc3.get("docList"));
-        ArrayList<Document> docs2 = (ArrayList<Document>) doc3.get("docList");
-        */
     }
     /**
      * Processes peers entry in the configuration file, creates a HostPort list.
@@ -105,6 +67,7 @@ public class Peer
         				socket = new Socket(peerList.get(peerIndex).host,peer.port);
             			if (socket.isConnected())
             			{
+            				socket.setKeepAlive(true);
             				System.out.println("Connected!");
             				connected = true;
             			}
@@ -118,6 +81,8 @@ public class Peer
     			}
     			eol = true;
         	}
+    		
+    		
     		if (connected)
     		{
     			in = new DataInputStream(socket.getInputStream());
@@ -127,12 +92,16 @@ public class Peer
     			int msgCounter=0;
     			while (true)
     			{
-        			out.writeUTF("Test "+msgCounter);
+        			System.out.println("Connection still alive.."+msgCounter);
+        			Thread.sleep(3000);
+        			/*
+    				out.writeUTF("Test "+msgCounter);
         			//log.info("Receiving data..");
         			//log.info("Received:"+in.readUTF());
         			System.out.println("Receiving data..");
         			System.out.println("Received: "+in.readUTF());
-        			Thread.sleep(3000);
+        			
+        			*/
         			msgCounter++;
     			}
     		}

@@ -7,7 +7,7 @@ public class Server implements FileSystemObserver {
 	
 	public Server()
 	{
-		System.out.println("[TE-INSIDE] Starting server object");
+		
 		
 	}
 	

@@ -3,12 +3,12 @@ package unimelb.bitbox;
 import java.net.*;
 import java.io.*;
 import java.util.*;
+import java.util.logging.Logger;
 
 public class TransportAgent {
 	
+	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	ArrayList<Connection> connectedPeers = new ArrayList<Connection>();
-	
-	
 	public void addConnection(Socket socket)
 	{
 		if (socket!=null)
@@ -16,6 +16,18 @@ public class TransportAgent {
 			this.connectedPeers.add(new Connection(socket));
 		}
 		
+	}
+	
+	public ArrayList<String> getPeerList()
+	{
+		ArrayList<String> peerList = new ArrayList<String>();
+		
+		for (Connection peer: connectedPeers)
+		{
+			peerList.add(peer.getPeerName());
+		}
+		
+		return peerList;
 	}
 
 	
@@ -42,8 +54,43 @@ public class TransportAgent {
 			}
 			catch (Exception e)
 			{
-				System.out.println("[TE-ERROR]:"+e.getMessage());
+				log.severe(e.getMessage());
 			}
+		}
+		
+		public String getHostName()
+		{
+			String name=null;
+			try
+			{
+				name = this.socket.getInetAddress().getHostName();
+			}
+			catch (Exception e)
+			{
+				log.severe(e.getMessage());
+			}
+			
+			return name;		
+		}
+		
+		public int getPortNumber()
+		{
+			int port=-1;
+			try
+			{
+				port = this.socket.getPort();
+			}
+			catch (Exception e)
+			{
+				log.severe(e.getMessage());
+			}
+			
+			return port;		
+		}
+		
+		public String getPeerName()
+		{
+			return this.getHostName()+":"+this.getPortNumber();
 		}
 		
 		@Override
@@ -51,7 +98,6 @@ public class TransportAgent {
 		{
 			try
 			{
-				System.out.println("[TE-Run]: server connection started listening..");
 				System.out.println("Starting protocol..");
 				int msgCounter=0;
 				while (true)
@@ -65,6 +111,7 @@ public class TransportAgent {
 			
 			catch (SocketException e)
 			{
+				log.severe(String.format("Connection to %s has been lost", this.getPeerName()));
 				System.out.println("Connection to "+socket.getInetAddress().getHostName()+" has been lost");
 			}
 			catch (Exception e)
