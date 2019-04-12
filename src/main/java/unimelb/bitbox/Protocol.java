@@ -21,7 +21,24 @@ public class Protocol
 		this.main = main;
 	}*/  
 	
+	/**
+	 * Holds all possible events that can occur 
+	 * @author Tarek Elbeik
+	 *
+	 */
+	public enum EVENT
+	{
+		FILE_CREATE_REQUEST,
+		FILE_DELETE_REQUEST,
+		FILE_BYTES_REQUEST,
+		FILE_MODIFY_REQUEST,
+		DIRECTORY_CREATE_REQUEST,
+		DIRECTORY_DELETE_REQUEST	
+	}
+	
 	Constants constants = new Constants();
+	
+	
 	
 	public <T> String createMessage(Constants.Command command, LinkedList<T> args)
 	{

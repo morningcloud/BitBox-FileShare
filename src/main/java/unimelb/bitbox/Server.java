@@ -1,9 +1,17 @@
 package unimelb.bitbox;
 
-import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
-import unimelb.bitbox.util.FileSystemObserver;
 
-public class Server implements FileSystemObserver {
+import java.net.ServerSocket;
+
+
+public class Server {
+	public TransportAgent transportAgent;
+    int connectionCount = 0;
+    
+    ServerSocket serverSocket=null;
+    
+    private String serverName;
+	private int serverPort;
 	
 	public Server()
 	{
@@ -11,12 +19,5 @@ public class Server implements FileSystemObserver {
 		
 	}
 	
-	@Override
-	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
-		// TODO: process events Check event type and process
-
-		System.out.println("[TE-INSIDE]: "+String.format("Event Raised. EventType: %s FileName: '%s' Path: '%s'", 
-				fileSystemEvent.event.toString(), fileSystemEvent.name, fileSystemEvent.path));
-	}
 
 }
