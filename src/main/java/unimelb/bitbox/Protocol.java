@@ -74,6 +74,7 @@ public class Protocol
 	public static boolean validate(Document d)
 	{
 		boolean result = true;
+		//One validation scenario, more need to be added.
 		if (d.get("command").equals("HANDSHAKE_REQUEST"))
 		{
 			Document hostPort = (Document) d.get("hostPort");

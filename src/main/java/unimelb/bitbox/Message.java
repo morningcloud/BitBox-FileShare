@@ -10,6 +10,10 @@ import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.HostPort;
 
 public class Message {
+	public Document document;
+	public HostPort toAddress;
+	public HostPort fromAddress;
+	
 	private Command command;
 	private String content;
 	private String message;

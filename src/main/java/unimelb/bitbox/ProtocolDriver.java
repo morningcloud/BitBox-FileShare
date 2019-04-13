@@ -52,6 +52,10 @@ public class ProtocolDriver {
 		
 	}
 
+	/**
+	 * To test executing commands by FSM
+	 * @return
+	 */
 	public Document TestCreateDir() 
 	{
 		Document m = new Document();
@@ -70,6 +74,26 @@ public class ProtocolDriver {
 		return m;
 		
 	}
+
+	public Document TestDeleteDir() 
+	{
+		Document m = new Document();
+		try
+		{
+			m.append("command", "DIRECTORY_CREATE_REQUEST");
+			m.append("pathName", "level1/level2");
+			
+		}
+		
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		
+		return m;
+		
+	}
+
 	
 	
 	private static String getFileChecksum(MessageDigest digest, File file) throws IOException

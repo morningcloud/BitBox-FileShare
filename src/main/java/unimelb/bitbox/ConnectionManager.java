@@ -6,15 +6,16 @@ import java.util.*;
 import java.util.logging.Logger;
 import unimelb.bitbox.util.*;
 
-public class TransportAgent {
+public class ConnectionManager {
 	int MAX_NO_OF_CONNECTION;
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	ArrayList<Connection> connectedPeers = new ArrayList<Connection>();
 	
-	public TransportAgent(int maxNoOfConnections)
+	public ConnectionManager(int maxNoOfConnections)
 	{
 		this.MAX_NO_OF_CONNECTION = maxNoOfConnections;
 	}
+	
 	public void addConnection(Socket socket)
 	{
 		if (socket!=null)
@@ -137,14 +138,10 @@ public class TransportAgent {
 					}
 				}
 				
-
 				Document receivedMsg = Document.parse(in.readUTF());
-				//System.out.println("doc received:"+receivedMsg.toJson());
-				//System.out.println("is valid: "+Protocol.validate(receivedMsg));
 				
 				if (Protocol.validate(receivedMsg))
 				{
-					
 					//out.writeUTF("");
 					int msgCounter=0;
 					while (true)

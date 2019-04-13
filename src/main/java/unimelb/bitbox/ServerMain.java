@@ -20,7 +20,7 @@ import java.util.LinkedList;
 public class ServerMain implements FileSystemObserver {
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	protected FileSystemManager fileSystemManager;
-	public TransportAgent transportAgent;
+	public ConnectionManager transportAgent;
     int connectionCount = 0;
     
     ServerSocket serverSocket=null;
@@ -29,93 +29,29 @@ public class ServerMain implements FileSystemObserver {
 	private int serverPort;
 
 	
-	public ServerMain(String serverName, int serverPort) throws NumberFormatException, IOException, NoSuchAlgorithmException {
-		if (serverName!="" & serverPort!=-1)
-		{
-			this.serverName = serverName;
-			this.serverPort = serverPort;
-		}
+	public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
+		
 		Configuration.getConfiguration();
-		int maxInboundConnections = Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"));
-		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);		
+		this.serverName = Configuration.getConfigurationValue("advertisedName");
+		this.serverPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
+		
+		if (this.serverName!="" & this.serverPort!=-1)
+		{
+			//new Thread(new EventProcessor(Configuration.getConfigurationValue("path")));
+			new EventProcessor(Configuration.getConfigurationValue("path")).run();
+			
+		}
+		System.out.println("Executing beyong event processor thread");
+		
+		
+		//int maxInboundConnections = Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"));
+		
+		//fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);		
 		//this.transportAgent = new TransportAgent(maxInboundConnections);
 		//runServer();
-		ProtocolDriver pd = new ProtocolDriver();
-		//processExeternalEvent(Protocol.EVENT.FILE_CREATE_REQUEST,pd.TestCreateFile());
-		processExeternalEvent(Protocol.EVENT.DIRECTORY_CREATE_REQUEST, pd.TestCreateDir());
+		
 	}
 
-	public Protocol.EVENT processExeternalEvent(Protocol.EVENT event, Document doc)
-	{
-		Protocol.EVENT response = null;
-		
-		if (event==Protocol.EVENT.FILE_CREATE_REQUEST)
-		{
-			String pathName = doc.getString("pathName");
-			Document fileDescriptor = (Document)doc.get("fileDescriptor");
-			String md5 = fileDescriptor.getString("md5");
-					
-			long fileSize = fileDescriptor.getLong("fileSize");
-			long lastModified = fileDescriptor.getLong("lastModified");
-			
-			try
-			{
-				System.out.println("Actually calling file creator..");
-				fileSystemManager.createFileLoader(pathName, md5, fileSize, lastModified);
-			}
-			
-			catch (IOException e)
-			{
-				log.severe("IO error: "+e.getMessage());
-			}
-			catch (NoSuchAlgorithmException e)
-			{
-				log.severe("No such algorithm: "+e.getMessage());
-			}
-			catch (Exception e)
-			{
-				log.severe("Unhandled exception: "+e.getMessage());
-			}
-			
-		}
-		if (event==Protocol.EVENT.DIRECTORY_CREATE_REQUEST)
-		{
-			String pathName = doc.getString("pathName");
-			if (fileSystemManager.isSafePathName(pathName))
-			{
-				LinkedList<String> dirs = new LinkedList<String>();
-				//populate the Queue with directories separated by "/"
-				for (String dir: pathName.split("/"))
-				{
-					dirs.add(dir);
-				}
-				try
-				{
-					boolean isCreated = true;
-					String dir="";
-					
-					//Creating directories starting with leaves, stops if creating any sub-folder fails.
-					while (!dirs.isEmpty()&isCreated)
-					{
-						dir += "/"+ dirs.pop();
-						isCreated = fileSystemManager.makeDirectory(dir);
-					}
-				}
-				catch (Exception e)
-				{
-					e.printStackTrace();
-				}
-				
-			}
-			else
-			{
-				System.out.println("Invalid path!");
-			}
-		}
-		
-		
-		return response;
-	}
 
 	
 	
