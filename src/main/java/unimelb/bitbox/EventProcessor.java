@@ -5,6 +5,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.logging.Logger;
 
+import unimelb.bitbox.util.Constants;
+import unimelb.bitbox.util.Constants.Command;
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.FileSystemObserver;
@@ -52,15 +54,15 @@ public class EventProcessor implements FileSystemObserver, Runnable
 		}
 	}
 	
-	public Protocol.EVENT processExeternalEvent(Protocol.EVENT event, Document doc)
+	public Command processExeternalCommand(Constants.Command command, Document doc)
 	{
-		Protocol.EVENT response = null;
+		Constants.Command response = null;
 		
 		//Handling file creation requests.
-		if (event==Protocol.EVENT.FILE_CREATE_REQUEST)
+		if (command==Constants.Command.FILE_CREATE_REQUEST)
 		{
 			/**
-			 * Check if file can be created (what FSM APIs do that?)
+			 * Check if file can be created (which FSM APIs do that?)
 			 */
 			String pathName = doc.getString("pathName");
 			Document fileDescriptor = (Document)doc.get("fileDescriptor");
@@ -89,7 +91,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 			}
 			
 		}
-		if (event==Protocol.EVENT.DIRECTORY_CREATE_REQUEST)
+		if (command==Constants.Command.DIRECTORY_CREATE_REQUEST)
 		{
 			String pathName = doc.getString("pathName");
 			if (fileSystemManager.isSafePathName(pathName))
