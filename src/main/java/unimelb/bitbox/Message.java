@@ -1,18 +1,21 @@
 package unimelb.bitbox;
 
+import java.io.IOException;
+import java.io.ObjectInputStream.GetField;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.commons.codec.binary.Base64;
 
+import unimelb.bitbox.Err.InvalidCommandException;
 import unimelb.bitbox.util.Constants.Command;
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.HostPort;
 
 public class Message {
-	public Document document;
-	public HostPort toAddress;
-	public HostPort fromAddress;
 	
 	private Command command;
 	private String content;
@@ -27,19 +30,131 @@ public class Message {
 	private int position;
 	private int length;
 	private List<HostPort> peersList = new ArrayList<>();
+	private HostPort hostAddress;
+
+	private static Logger log = Logger.getLogger(Message.class.getName());
 	
-	public Message(String jsonMessage) {
+	public static void main( String[] args ) throws IOException, NumberFormatException, NoSuchAlgorithmException
+    {
+        //Dummy testing
+    	System.setProperty("java.util.logging.SimpleFormatter.format",
+                "[%1$tc] %2$s %4$s: %5$s%n");
+    	
+    	String str="{\"command\":\"INVALID_PROTOCOL\",\"pathName\":\"dir/subdir/etc\"\"peers\": [{\"host\" : \"sunrise.cis.unimelb.edu.au\",\"port\" : 8111},{\"host\" : \"bigdata.cis.unimelb.edu.au\",\"port\" : 8500}]}";
+    	
+		log.info("message "+str);
+    	
+    	Message msg;
+    	
+		try {
+			msg = new Message(str);
+			log.info("test command " + msg.command);
+			log.info("test "+msg.pathName);
+
+			log.info(msg.getJsonMessage(Command.INVALID_PROTOCOL));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			log.log(Level.SEVERE, e.toString());
+		}
+    }
+	
+	public Message(String jsonMessage) throws Exception {
 		//parse jsonMessage
+		this(Document.parse(jsonMessage));
 	}
 	
-	public Message(Document doc) {
+	public Message(Document doc) throws Exception {
+		//Validate message
+		String cmd = doc.getString("command");
+		if (cmd == null || cmd.isEmpty())
+				throw new InvalidCommandException("command cannot be empty.");
 		
+		command = Command.fromString(cmd);
+		if (command == null)
+			throw new InvalidCommandException("Invalid command.");
+		
+		parseMessage(command,doc);
 	}
 	
-	public String getMessage(Command cmd) {//May be this is a JsonObject
+	private void parseMessage(Command cmd,Document doc) {
+		//Read relivant content based on the command
+		content = doc.getString("content");
 		
-		String commandStr = command.name();
-		return ""; //Use Document class to construct a message to be transfered
+		//Read and validate tags depending on the incoming command
+		switch(cmd) {
+		case DIRECTORY_CREATE_REQUEST:
+			//TO DO
+		case DIRECTORY_CREATE_RESPONSE:
+			
+		default:
+				
+		}
+		
+		message = doc.getString("message");
+		if((content!=null) && !content.isEmpty())
+			binaryData = Base64.decodeBase64(content);
+		
+		pathName = doc.getString("pathName");
+		
+		isSuccessStatus = doc.containsKey("isSuccessStatus") ? doc.getBoolean("isSuccessStatus") : false;
+		position = doc.containsKey("position") ? doc.getInteger("position") : 0;
+		length = doc.containsKey("length") ? doc.getInteger("length") : 0;
+		
+		if(doc.containsKey("fileDescriptor"))
+		{
+			Document fileDescriptor = (Document) doc.get("fileDescriptor");
+			md5 = fileDescriptor.getString("md5");
+			fileSize = fileDescriptor.getInteger("fileSize");
+			lastModified = fileDescriptor.getString("lastModified");
+		}
+		
+		if(doc.containsKey("hostPort")) {
+			Document hostDoc = (Document) doc.get("hostPort");
+			hostAddress = new HostPort(hostDoc);
+		}
+		
+		if(doc.containsKey("peers")) {
+			ArrayList<Document> peerDoc = (ArrayList<Document>) doc.get("peers");
+			for (Document pd:peerDoc) {
+				peersList.add(new  HostPort(pd));
+			}
+		}
+	}
+	
+	public String getJsonMessage(Command cmd) {
+
+        Document doc = new Document();
+        doc.append("command", cmd.name());
+        
+        switch (cmd) {
+	        case INVALID_PROTOCOL:
+	        	doc.append("message", message);
+	        	break;
+	        case CONNECTION_REFUSED:
+	        	doc.append("message", message);
+	            ArrayList<Document> peerList = new ArrayList<Document>();
+	            for (HostPort p:peersList) {
+	                Document pd = new  Document();
+		            pd.append("host", p.host);
+		            pd.append("port", p.port);
+		            peerList.add(pd);
+	            }
+	            doc.append("peers", peerList);
+	            break;
+	        case FILE_BYTES_REQUEST:
+	            Document docFD = new Document();
+	            docFD.append("md5",md5);
+	            docFD.append("lastModified",lastModified);
+	            docFD.append("fileSize",fileSize);
+	            
+	            doc.append("fileDescriptor", docFD);
+	            break;
+		default:
+			//throw error
+			break;
+        }
+        
+		return doc.toJson();
 	}
 	
 	public Command getCommand() {
