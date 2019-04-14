@@ -1,6 +1,7 @@
 package unimelb.bitbox;
 import java.net.*;
 import java.io.*;
+import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
 
 import unimelb.bitbox.util.Document;
@@ -16,7 +17,9 @@ public class Connection implements Runnable {
 	String outBuffer;
 	Logger log;
 	HostPort peer;
-	public Connection(Socket clientSocket, ProcessMessage connectionManager) 
+	BlockingQueue<Message> incomingMessagesQueue;
+	
+	public Connection(Socket clientSocket, BlockingQueue<Message> MessageQueue, ProcessMessage connectionManager) 
 	{
 		log = Logger.getLogger(Connection.class.getName());
 		try
@@ -25,6 +28,10 @@ public class Connection implements Runnable {
 			this.out = new DataOutputStream(clientSocket.getOutputStream());
 			this.clientSocket = clientSocket;
 			this.connectionManager = connectionManager;
+			this.incomingMessagesQueue = MessageQueue;
+			//connection ip/port
+			this.peer = new HostPort(clientSocket.getInetAddress().getHostAddress(), clientSocket.getLocalPort());
+			log.info("Active Connection maintained for: "+peer.toString());
 		}
 		
 		catch (Exception e)
@@ -42,13 +49,18 @@ public class Connection implements Runnable {
 		{
 			while (true)
 			{
-				if (this.outBuffer!="")
+				if (this.outBuffer!="") {
+					log.info("outBuffer content to send: "+outBuffer);
 					out.writeUTF(outBuffer);
-				
+				}
 				receive();
 				if (!(inBuffer==null))
 				{
-					this.connectionManager.enqueueMessage(inBuffer);
+					log.info("inBuffer content received: "+inBuffer);
+					Message inMsg = new Message(inBuffer);
+					inMsg.setFromAddress(peer);
+					incomingMessagesQueue.put(inMsg); //add to inQueue that is used by Event Processor
+					//this.connectionManager.enqueueMessage(inBuffer);
 				}
 				else
 					System.out.println("In buffer is null");
@@ -57,7 +69,7 @@ public class Connection implements Runnable {
 		
 		catch (Exception e)
 		{
-			log.warning(e.getMessage());
+			e.printStackTrace();
 		}
 	}
 	
@@ -76,7 +88,8 @@ public class Connection implements Runnable {
 			if (Protocol.validate(handshakeRequest))
 			{
 				status = true;
-				peer = new HostPort(handshakeRequest.getString("hostPort"));
+				Document host = (Document) handshakeRequest.get("hostPort");
+				peer = new HostPort(host);
 			}
 				
 			else
@@ -92,6 +105,7 @@ public class Connection implements Runnable {
 	
 	public void send(String message)
 	{
+		log.info("in connection.send, message: "+message);
 		this.outBuffer=message;
 	}
 	
@@ -99,7 +113,10 @@ public class Connection implements Runnable {
 	{
 		try
 		{
+			//TODO: this needs to be revised, the read is blocking, thus no outgoing message will be sent while this is waiting for incoming messages
+			log.info("blocked at in.readUTF()");
 			inBuffer = this.in.readUTF();
+			log.info("after at in.readUTF()");
 		}
 		catch (Exception e)
 		{

@@ -3,7 +3,9 @@ package unimelb.bitbox;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.concurrent.BlockingQueue;
 
 
 import unimelb.bitbox.util.Configuration;
@@ -19,18 +21,40 @@ import java.util.Calendar;
 public class EventProcessor implements FileSystemObserver, Runnable
 {
 	protected FileSystemManager fileSystemManager;
-	private static Logger log = Logger.getLogger(ServerMain.class.getName());
+	private static Logger log = Logger.getLogger(EventProcessor.class.getName());
 	public LinkedList<Document> outQueue;
+	private BlockingQueue<Message> incomingMessages;
 	public ConnectionManager connectionManager;
-	
+
+	/*
+	 * This thread constantly takes/monitor incomingMessages from the message queue
+	 *  and then call processor to process it.
+	 */
 	@Override
 	public void run()
 	{
 		/**
-		 * This method should continuously monitor InomingEventQueue and call processor to process it.
+		 * This method should continuously monitor incomingMessages and call processor to process it.
 		 * It is also used to keep track of Synch events which happen every 560 seconds.
 		 */
-		
+			while (true) {
+				try {
+					Message msg = incomingMessages.take(); //This thread will get blocked when the queue is empty and wait till new message get inserted
+					log.info("External Command Received... Processing "+msg.getDocument().toJson());
+					if (msg == null)
+						continue;
+					if (msg.getCommand() != null) {
+						processExternalCommand(msg.getCommand(),msg.getDocument());
+					}
+				} catch (InterruptedException e) {
+					
+				} catch (RuntimeException rte) {
+					rte.printStackTrace();
+					//Close?
+				} catch (Throwable t) {
+					t.printStackTrace();
+				}
+			}
 	}
 
 	
@@ -41,7 +65,6 @@ public class EventProcessor implements FileSystemObserver, Runnable
 	public EventProcessor(ConnectionManager connectionManager)
 	{
 		log.info("starting event processor");
-		Configuration.getConfiguration();
 		String path = Configuration.getConfigurationValue("path");
 		if (path!=null)
 		{
@@ -50,6 +73,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 				this.fileSystemManager = new FileSystemManager(path,this);
 				this.outQueue = new LinkedList<Document>();
 				this.connectionManager = connectionManager;
+				this.incomingMessages = connectionManager.getIncomingMessagesQueue();
 			}
 			
 			catch (Exception e)
@@ -57,9 +81,12 @@ public class EventProcessor implements FileSystemObserver, Runnable
 				e.printStackTrace();
 			}
 		}
+		else {
+			log.log(Level.SEVERE, "Monitor path is undefined. This peer will not initiate any events!");
+		}
 	}
 	
-	public Command processExeternalCommand(Constants.Command command, Document doc)
+	public Command processExternalCommand(Constants.Command command, Document doc)
 	{
 		Constants.Command response = null;
 		
@@ -178,6 +205,14 @@ public class EventProcessor implements FileSystemObserver, Runnable
 					,fileSystemEvent.fileDescriptor.md5
 					,fileSystemEvent.fileDescriptor.fileSize);
 			
+			//TODO: To test full cycle... This may get updated by protocol?
+			Message msg = new Message();
+			msg.setCommand(Command.FILE_CREATE_REQUEST);
+			msg.setMd5(fileSystemEvent.fileDescriptor.md5);
+			msg.setFileSize(fileSystemEvent.fileDescriptor.fileSize);
+			msg.setLastModified(fileSystemEvent.fileDescriptor.lastModified);
+			msg.setPathName(fileSystemEvent.pathName);
+			connectionManager.sendAllPeers(msg);
 		}
 
 		//Handling file deletion

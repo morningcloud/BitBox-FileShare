@@ -19,7 +19,11 @@ public class HostPort {
 	}
 	public HostPort(Document hostPort) {
 		this.host=hostPort.getString("host");
+		try{//TODO: sometimes this is coming as Long and sometimes Integer! Why?
 		this.port=(int) hostPort.getLong("port");
+		}catch(Exception e) {
+		this.port=(int) hostPort.getInteger("port");
+		}
 	}
 	public Document toDoc() {
 		Document hp = new Document();

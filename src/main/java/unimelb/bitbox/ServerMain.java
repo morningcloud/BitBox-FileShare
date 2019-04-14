@@ -27,10 +27,9 @@ public class ServerMain implements Runnable {
 	
 	public ServerMain(ConnectionManager connectionManager) throws NumberFormatException, IOException, NoSuchAlgorithmException {
 		
-		Configuration.getConfiguration();
 		this.serverName = Configuration.getConfigurationValue("advertisedName");
 		this.serverPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
-		
+		this.connectionManager = connectionManager;
 	}
   
 
@@ -43,10 +42,14 @@ public class ServerMain implements Runnable {
 		try
 		{
 			this.serverSocket = new ServerSocket(this.serverPort);
-			System.out.println("Server started, listening at "+serverPort);
+			log.info("Peer Server started, listening at "+serverPort);
 			while (true)
 			{
 				clientSocket = this.serverSocket.accept();
+				//It should not just add the connection... 
+				//it should check if max incoming connection is reached
+				//then send either INVALID_PROTOCOL,CONNECTION_REFUSED or HANDSHAKE_RESPONSE
+				//only after successful handshake it should add to the connection
 				this.connectionManager.addConnection(clientSocket);
 				log.info(String.format("Connected to: %s, total number of established connections: %s\n",
 						clientSocket.getInetAddress().getHostName(),

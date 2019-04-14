@@ -16,6 +16,9 @@ import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.HostPort;
 
 public class Message {
+	private Document document;
+	private HostPort toAddress;
+	private HostPort fromAddress;
 	
 	private Command command;
 	private String content;
@@ -24,13 +27,12 @@ public class Message {
 	private String pathName;
 	private boolean isSuccessStatus;
 	private String md5;
-	private String lastModified;
+	private long lastModified;
 
-	private int fileSize;
+	private long fileSize;
 	private int position;
 	private int length;
 	private List<HostPort> peersList = new ArrayList<>();
-	private HostPort hostAddress;
 
 	private static Logger log = Logger.getLogger(Message.class.getName());
 	
@@ -63,8 +65,14 @@ public class Message {
 		this(Document.parse(jsonMessage));
 	}
 	
+	//TODO: Should not have this empty constructor
+	public Message() {
+		
+	}
+	
 	public Message(Document doc) throws Exception {
 		//Validate message
+		document = doc;
 		String cmd = doc.getString("command");
 		if (cmd == null || cmd.isEmpty())
 				throw new InvalidCommandException("command cannot be empty.");
@@ -104,13 +112,13 @@ public class Message {
 		{
 			Document fileDescriptor = (Document) doc.get("fileDescriptor");
 			md5 = fileDescriptor.getString("md5");
-			fileSize = fileDescriptor.getInteger("fileSize");
-			lastModified = fileDescriptor.getString("lastModified");
+			fileSize = fileDescriptor.getLong("fileSize");
+			lastModified = fileDescriptor.getLong("lastModified");
 		}
 		
 		if(doc.containsKey("hostPort")) {
 			Document hostDoc = (Document) doc.get("hostPort");
-			hostAddress = new HostPort(hostDoc);
+			fromAddress = new HostPort(hostDoc);
 		}
 		
 		if(doc.containsKey("peers")) {
@@ -127,6 +135,13 @@ public class Message {
         doc.append("command", cmd.name());
         
         switch (cmd) {
+	        case HANDSHAKE_REQUEST:
+                Document pd1 = new  Document();
+	            pd1.append("host", fromAddress.host);
+	            pd1.append("port", fromAddress.port);
+            
+	            doc.append("hostPort", pd1);
+	        	break;
 	        case INVALID_PROTOCOL:
 	        	doc.append("message", message);
 	        	break;
@@ -149,12 +164,26 @@ public class Message {
 	            
 	            doc.append("fileDescriptor", docFD);
 	            break;
+	        case FILE_CREATE_REQUEST:
+	            Document docDesc = new Document();
+	            docDesc.append("md5",md5);
+	            docDesc.append("lastModified",lastModified);
+	            docDesc.append("fileSize",fileSize);
+	            
+	            doc.append("fileDescriptor", docDesc);
+	            doc.append("pathName", pathName);
+	            break;
 		default:
 			//throw error
 			break;
         }
         
 		return doc.toJson();
+	}
+	
+	public String getJsonMessage() {
+
+        return getJsonMessage(command);
 	}
 	
 	public Command getCommand() {
@@ -197,20 +226,20 @@ public class Message {
 		this.md5 = md5;
 	}
 
-	public String getLastModified() {
+	public long getLastModified() {
 		return lastModified;
 	}
 
-	public void setLastModified(String lastModified) {
-		this.lastModified = lastModified;
+	public void setLastModified(long lastModified2) {
+		this.lastModified = lastModified2;
 	}
 
-	public int getFileSize() {
+	public long getFileSize() {
 		return fileSize;
 	}
 
-	public void setFileSize(int fileSize) {
-		this.fileSize = fileSize;
+	public void setFileSize(long fileSize2) {
+		this.fileSize = fileSize2;
 	}
 
 	public int getPosition() {
@@ -256,5 +285,29 @@ public class Message {
 
 	public void setBinaryData(byte[] binaryData) {
 		this.binaryData = binaryData;
+	}
+
+	public Document getDocument() {
+		return document;
+	}
+
+	public void setDocument(Document document) {
+		this.document = document;
+	}
+
+	public HostPort getToAddress() {
+		return toAddress;
+	}
+
+	public void setToAddress(HostPort toAddress) {
+		this.toAddress = toAddress;
+	}
+
+	public HostPort getFromAddress() {
+		return fromAddress;
+	}
+
+	public void setFromAddress(HostPort fromAddress) {
+		this.fromAddress = fromAddress;
 	}
 }

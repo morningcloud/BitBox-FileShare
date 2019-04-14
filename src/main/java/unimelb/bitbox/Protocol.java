@@ -36,7 +36,8 @@ public class Protocol
 		DIRECTORY_DELETE_REQUEST	
 	}
 	
-	Constants constants = new Constants();
+	//not required as all enums are implicitly static
+	//Constants constants = new Constants();
 	
 	
 	public static String createRequest(Constants.Command requestType)
@@ -81,7 +82,7 @@ public class Protocol
 			case HANDSHAKE_REQUEST:
 			{
 				 response.append("command", "HANDSHAKE_REQUEST");
-				 response.append("message", args[0]);
+				 response.append("hostPort", args[0]);
 				 break;
 			}
 			default: 
