@@ -22,7 +22,20 @@ public class Constants{
 		DIRECTORY_DELETE_REQUEST, 
 		DIRECTORY_DELETE_RESPONSE,
 		FILE_BYTES_REQUEST, 
-		FILE_BYTES_RESPONSE
+		FILE_BYTES_RESPONSE;
+		
+	    public static Command fromString(String cmd)
+	    {
+	        //look for matching abbreviation and return the equivalent suit
+	        for(Command command : Command.values())
+	        {
+	            if(cmd.equals(command.name()))
+	            {
+	                return command;
+	            }
+	        }
+	        return null;
+	    }
 	}
 	
 	public enum EVENT
