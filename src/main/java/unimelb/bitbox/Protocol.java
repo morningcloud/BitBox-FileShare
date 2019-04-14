@@ -1,10 +1,10 @@
 package unimelb.bitbox;
 
-import java.util.LinkedList;
+
+
 
 import unimelb.bitbox.util.Constants;
 import unimelb.bitbox.util.Document;
-import unimelb.bitbox.util.Constants.Command;
 
 public class Protocol 
 {
@@ -39,31 +39,60 @@ public class Protocol
 	Constants constants = new Constants();
 	
 	
-	
-	public <T> String createMessage(Constants.Command command, LinkedList<T> args)
+	public static String createRequest(Constants.Command requestType)
 	{
-		Document message = null;
-		if (command == Constants.Command.INVALID_PROTOCOL)
+		Document requestDocument = new Document();
+		
+		return requestDocument.toJson();
+	}
+	public static String createMessage(Constants.Command messageType, String[] args)
+	{
+		Document response = new Document();
+		
+		switch (messageType)
 		{
-			 message = new Document();
-			 message.append("command", "INVALID_MESSAGE");
-			 message.append("message", "message must contain a command field as string");
-		}
-		if (command == Constants.Command.HANDSHAKE_REQUEST)
-		{
-			 message = new Document();
-			 Document subMessage = new Document();
-			 
-			 message.append("command", "HANDSHAKE_REQUEST");
-			 subMessage.append("host", Peer.serverName); // Modified for static reference
-			 subMessage.append("port", Peer.serverPort); // Modified for static reference
-			 message.append("hostPort", subMessage);
-		}
-		if (command == Constants.Command.CONNECTION_REFUSED)
-		{
+	
+			/**
+			 * Arguments should be structured as:
+			 * args[0] -->
+			 * args[1] -->
+			 * ...
+			 */
+			case HANDSHAKE_RESPONSE:
+			{
+				response.append("command",messageType.toString());
+				response.append("hostPort", Document.parse(args[0]));
+				break;
+			}
 			
+			/**
+			 * Arguments should be structured as:
+			 * args[0] --> Message to be sent; why the protocol is invalid
+			 * args[1] -->
+			 * ...
+			 */
+			case INVALID_PROTOCOL:
+			{
+				 response.append("command", "INVALID_PROTOCOL");
+				 response.append("message", args[0]);
+				 break;
+			}
+			
+			case HANDSHAKE_REQUEST:
+			{
+				 response.append("command", "HANDSHAKE_REQUEST");
+				 response.append("message", args[0]);
+				 break;
+			}
+			default: 
+			{
+				 response.append("command", "INVALID_PROTOCOL");
+				 response.append("message", args[0]);
+				 break;
+			}
 		}
-		return message.toJson();
+		
+		return response.toJson();
 	}
 	
 	/**
@@ -78,13 +107,13 @@ public class Protocol
 		if (d.get("command").equals("HANDSHAKE_REQUEST"))
 		{
 			Document hostPort = (Document) d.get("hostPort");
-			if (
-					(hostPort.getString("host").equals(null))|!((hostPort.getLong("port"))>=1023))
+			if ((hostPort.getString("host").equals(null))|!((hostPort.getLong("port"))>=1023))
 			{
 				result = false;
 				
 			}
 		}
+		
 		else
 		{
 			result = false;

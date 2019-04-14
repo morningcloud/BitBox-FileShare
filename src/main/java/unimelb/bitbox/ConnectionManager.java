@@ -5,187 +5,79 @@ import java.io.*;
 import java.util.*;
 import java.util.logging.Logger;
 import unimelb.bitbox.util.*;
+import unimelb.bitbox.*;
 
-public class ConnectionManager {
+public class ConnectionManager implements ProcessMessage {
 	int MAX_NO_OF_CONNECTION;
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	ArrayList<Connection> connectedPeers = new ArrayList<Connection>();
-	
-	public ConnectionManager(int maxNoOfConnections)
+	HostPort serverHostPort;
+	public ConnectionManager(int maxNoOfConnections, HostPort serverHostPort)
 	{
 		this.MAX_NO_OF_CONNECTION = maxNoOfConnections;
+		this.serverHostPort = serverHostPort;
 	}
 	
 	public void addConnection(Socket socket)
 	{
+		Connection connection;
+		 
 		if (socket!=null)
 		{
-			new Connection(socket);
+			connection = new Connection(socket,this);
+			if (connection.isHSRReceived())
+			{
+				if (connectedPeers.size()<MAX_NO_OF_CONNECTION)
+				{
+					String[] message = new String[1];
+					
+					message[0] = this.serverHostPort.toDoc().toJson();
+					connection.send(Protocol.createMessage(Constants.Command.HANDSHAKE_RESPONSE, message));
+					new Thread(connection).start();
+					connectedPeers.add(connection);
+				}
+				else
+				{
+					connection.send(getPeerList().toJson());
+				}
+				
+			}
+			else
+			{
+				String[] message = new String[1];
+				message[0] = "Invalid protocol";
+				connection.send(Protocol.createMessage(Constants.Command.INVALID_PROTOCOL, message));
+				connection.close();
+				
+			}
 		}
-		
 	}
 	
-	public ArrayList<String> getPeerList()
+	public Document getPeerList()
 	{
-		ArrayList<String> peerList = new ArrayList<String>();
-		
+		Document peerList = new Document();
+		ArrayList<Document> peers = new ArrayList<Document>();
 		for (Connection peer: connectedPeers)
 		{
-			peerList.add(peer.getPeerName());
+			peers.add(peer.peer.toDoc());
 		}
+		peerList.append("command", Constants.Command.CONNECTION_REFUSED.toString());
+		peerList.append("message", "connection limit reached");
+		peerList.append("peers", peerList);
 		
 		return peerList;
 	}
 
 	
 	/**
-	 * Represents an active incoming establish connection with a peer.
-	 * @author Tarek Elbeik
-	 *
+	 * Enqueues a message in InMessageQueue. This method will be invoked by
+	 * Individual Connections as they received messages.
 	 */
-	class Connection extends Thread
+	@Override
+	public void enqueueMessage(String message)
 	{
-		DataInputStream in;
-		DataOutputStream out;
-		Socket socket;
-		public Connection(Socket socket)
-		{
-			this.socket = socket;
-			try
-			{
-				in = new DataInputStream(
-						new DataInputStream(this.socket.getInputStream()));
-				out = new DataOutputStream(
-						new DataOutputStream(this.socket.getOutputStream()));
-				this.start();
-			}
-			catch (Exception e)
-			{
-				log.severe(e.getMessage());
-			}
-		}
+		System.out.println("Connection manager: enqueued message="+message);
 		
-		/**
-		 * Retrieves connected peer's host name.
-		 * @return
-		 */
-		public String getHostName()
-		{
-			String name=null;
-			try
-			{
-				name = this.socket.getInetAddress().getHostName();
-			}
-			catch (Exception e)
-			{
-				log.severe(e.getMessage());
-			}
-			
-			return name;		
-		}
-		
-		/**
-		 * Retrieves connected peer's port number.
-		 * @return
-		 */
-		public int getPortNumber()
-		{
-			int port=-1;
-			try
-			{
-				port = this.socket.getPort();
-			}
-			catch (Exception e)
-			{
-				log.severe(e.getMessage());
-			}
-			
-			return port;		
-		}
-		
-		/**
-		 * Constructs peer name and port number separated by ":"
-		 * @return
-		 */
-		public String getPeerName()
-		{
-			return this.getHostName()+":"+this.getPortNumber();
-		}
-		
-		
-		@Override
-		public void run()
-		{
-			try
-			{
-				System.out.println("Starting protocol..");
-				if (connectedPeers.size()<MAX_NO_OF_CONNECTION)
-				{
-					connectedPeers.add(new Connection(socket));
-				}
-				else
-				{
-					try
-					{
-						String msg = "";
-						
-						this.out.writeUTF(msg);
-						
-					}
-					catch (Exception e)
-					{
-						
-					}
-				}
-				
-				Document receivedMsg = Document.parse(in.readUTF());
-				
-				if (Protocol.validate(receivedMsg))
-				{
-					//out.writeUTF("");
-					int msgCounter=0;
-					while (true)
-					{
-						String dataIn = in.readUTF();
-						System.out.println("Server received: "+dataIn);
-						System.out.println("Server writing started..");
-						out.writeUTF("ACK ("+dataIn+msgCounter+")");	
-					}
-				}
-				else
-				{
-					out.writeUTF(Protocol.INVALID_PROTOCOL);
-					log.warning("Invalid protocol received, closing connection..");
-					this.socket.close();
-				}
-				//receivedMsg.toJson
-			}
-			
-			catch (SocketException e)
-			{
-				log.severe(String.format("Connection to %s has been lost", this.getPeerName()));
-				System.out.println("Connection to "+socket.getInetAddress().getHostName()+" has been lost");
-			}
-			catch (Exception e)
-			{
-				e.printStackTrace();
-			}
-			
-			finally
-			{
-				try
-				{
-					if (this.socket!=null) socket.close();
-					if (this.in!=null) in.close();
-					if (this.out!=null) out.close();
-						
-				}
-				catch (Exception e)
-				{
-					log.severe(e.getMessage());
-				}
-			}
-		}
 	}
-
+		
 }

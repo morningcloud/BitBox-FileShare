@@ -4,70 +4,42 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import java.net.InetAddress;
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.FileSystemManager;
-import unimelb.bitbox.util.FileSystemObserver;
-import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
-
-import unimelb.bitbox.*;
 import unimelb.bitbox.util.*;
-import java.util.Stack;
-import java.util.LinkedList;
 
-public class ServerMain implements FileSystemObserver {
+
+public class ServerMain implements Runnable {
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	protected FileSystemManager fileSystemManager;
-	public ConnectionManager transportAgent;
+	public ConnectionManager connectionManager;
     int connectionCount = 0;
-    
+    InetAddress serverAddress;
     ServerSocket serverSocket=null;
     
+    //What is the point of having advertised name if we can't set it??
     private String serverName;
 	private int serverPort;
+	HostPort serverHostPort;
 
 	
-	public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
+	public ServerMain(ConnectionManager connectionManager) throws NumberFormatException, IOException, NoSuchAlgorithmException {
 		
 		Configuration.getConfiguration();
 		this.serverName = Configuration.getConfigurationValue("advertisedName");
 		this.serverPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
 		
-		if (this.serverName!="" & this.serverPort!=-1)
-		{
-			//new Thread(new EventProcessor(Configuration.getConfigurationValue("path")));
-			new EventProcessor(Configuration.getConfigurationValue("path")).run();
-			
-		}
-		System.out.println("Executing beyong event processor thread");
-		
-		
-		//int maxInboundConnections = Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"));
-		
-		//fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);		
-		//this.transportAgent = new TransportAgent(maxInboundConnections);
-		//runServer();
-		
 	}
+  
 
 
-	
-	
+
 	@Override
-	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) 
+	public void run()
 	{
-		// TODO: process events Check event type and process
-		/*
-		log.info(String.format("Event Raised. EventType: %s FileName: '%s' Path: '%s'", 
-				fileSystemEvent.event.toString(), fileSystemEvent.name, fileSystemEvent.path));
-				*/
-	}
-    
-    public void runServer()
-    {
-    	Socket clientSocket;
+		Socket clientSocket;
 		try
 		{
 			this.serverSocket = new ServerSocket(this.serverPort);
@@ -75,10 +47,10 @@ public class ServerMain implements FileSystemObserver {
 			while (true)
 			{
 				clientSocket = this.serverSocket.accept();
-				this.transportAgent.addConnection(clientSocket);
+				this.connectionManager.addConnection(clientSocket);
 				log.info(String.format("Connected to: %s, total number of established connections: %s\n",
 						clientSocket.getInetAddress().getHostName(),
-						this.transportAgent.connectedPeers.size()
+						this.connectionManager.connectedPeers.size()
 						));
 			}
 		}
@@ -86,7 +58,7 @@ public class ServerMain implements FileSystemObserver {
 		{
 			log.severe(ex.getMessage());
 		}
-
+	
 		catch (Exception e)
 		{
 			e.printStackTrace();
@@ -103,5 +75,5 @@ public class ServerMain implements FileSystemObserver {
 				System.out.println(e.getMessage());
 			}
 		}
-    }
+	}
 }

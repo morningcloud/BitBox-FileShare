@@ -44,13 +44,15 @@ public class Peer
     	System.setProperty("java.util.logging.SimpleFormatter.format",
                 "[%1$tc] %2$s %4$s: %5$s%n");
         log.info("BitBox Peer starting...");
-        Configuration.getConfiguration();        
-        Peer agent = new Peer();        
-        agent.connectConfigPeers(Configuration.getConfigurationValue("peers"), agent);
-    	new ServerMain();
-    	
-    	
+        Configuration.getConfiguration();
         
+        Peer agent = new Peer();        
+        HostPort serverHostPort = new HostPort(serverName,serverPort);
+        agent.connectConfigPeers(Configuration.getConfigurationValue("peers"), agent);
+    	ConnectionManager connectionManager = 
+    			new ConnectionManager(
+    					Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections")), serverHostPort);
+        new ServerMain(connectionManager).run();
     }
     
     

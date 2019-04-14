@@ -5,6 +5,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.logging.Logger;
 
+
+import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.Constants;
 import unimelb.bitbox.util.Constants.Command;
 import unimelb.bitbox.util.Document;
@@ -19,7 +21,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 	protected FileSystemManager fileSystemManager;
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	public LinkedList<Document> outQueue;
-
+	public ConnectionManager connectionManager;
 	
 	@Override
 	public void run()
@@ -36,15 +38,18 @@ public class EventProcessor implements FileSystemObserver, Runnable
 	 * Instantiates an EventProcessor.
 	 * @param path
 	 */
-	public EventProcessor(String path)
+	public EventProcessor(ConnectionManager connectionManager)
 	{
 		log.info("starting event processor");
+		Configuration.getConfiguration();
+		String path = Configuration.getConfigurationValue("path");
 		if (path!=null)
 		{
 			try
 			{
 				this.fileSystemManager = new FileSystemManager(path,this);
 				this.outQueue = new LinkedList<Document>();
+				this.connectionManager = connectionManager;
 			}
 			
 			catch (Exception e)
