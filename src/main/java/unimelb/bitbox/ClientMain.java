@@ -55,8 +55,7 @@ public class ClientMain {
 	private class PeerRunnable extends Thread {		
 		 
 		private HostPort pHostPort;
-		//private DataInputStream in;
-		//private DataOutputStream out;
+
 		private BufferedReader in;
 		private BufferedWriter out;
 		private Logger log = Logger.getLogger(PeerRunnable.class.getName());
@@ -124,52 +123,25 @@ public class ClientMain {
 		    		
 		    		if (socket.isConnected() && !socket.isClosed()){//if connected to a peer before time out...
 		    			try{
-		    					log.warning(this.getName()+ ":"+"Trying to initiate Handshake_Request");
-				    			//in =  new DataInputStream(socket.getInputStream());
-				        		//out = new DataOutputStream(socket.getOutputStream());  
-		    					InputStream immin =  socket.getInputStream();
-		    					OutputStream immout =  socket.getOutputStream();
-		    					log.warning(this.getName()+ ":"+"Client Input and Output Stream Successfully Initiated");	
-		    					//in = new DataInputStream(immin);  
-		    					//out =  new DataOutputStream(immout);
-		    					in = new BufferedReader(new InputStreamReader(immin,"UTF8"));  
-		    					out =  new BufferedWriter(new OutputStreamWriter(immout,"UTF8"));
-				        		log.warning(this.getName()+ ":"+"Cient Input and Output Data Stream Successfully Initiated");	
+		    					log.warning(this.getName()+ ":"+"Trying to initiate Handshake_Request");	
+		    					in = new BufferedReader(new InputStreamReader(socket.getInputStream(),"UTF8"));  
+		    					out =  new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(),"UTF8"));
+				        		log.warning(this.getName()+ ":"+"Cient Input and Output buffers Successfully Initiated");	
 				        		log.warning(this.getName()+ ":"+"Client Sending Handshake_Request");
-				        		
-					   			 String localAddress = socket.getLocalSocketAddress().toString();
-					   			 //System.out.println(localAddress);
-					   			 String[] localAddressSplit = localAddress.split(":");
-					   			 // System.out.println(localAddressSplit[0]);
-					   			 String hostAddress=localAddressSplit[0].substring(1);
-					   			 System.out.println("Client Host " + hostAddress);
-					   			 System.out.println("Client Port: " + localAddressSplit[1]);
-				        		 Document message = new Document();
-								 Document subMessage = new Document();							 
-								 subMessage.append("host", hostAddress); // Modified for static reference
-								 subMessage.append("port", Long.parseLong(localAddressSplit[1])); // Modified for static reference
-								 
-								 message.append("hostPort", subMessage);	
-								 message.append("command", "HANDSHAKE_REQUEST");
-								 
-								 System.out.println(message.toJson());
-								 out.write(message.toJson() + "\n");
-								 out.flush();
-								 
-								 
-								 
-				        		//out.writeUTF(this.protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST,null));				        		
+				        		String hsr = Protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST,
+				        				socket.getLocalSocketAddress().toString().split(":"));
+								 out.write(hsr);
+								 out.flush();								 
+				        					        		
 				        		log.warning(this.getName()+ ":"+"Client Sent Handshake_Request");
-				        		String s= in.readLine();
-				        		log.warning("ReadUTF "+s);
-				        		rxMsg =  Document.parse(s);
+				        		rxMsg =  Document.parse(in.readLine());
 				        		System.out.println(rxMsg.toJson());
 				        		log.warning(this.getName()+ ":"+"Client Received Handshake_response");
 				        			
 				        		if (Protocol.validateHSRefused(rxMsg)){
 				        			ArrayList<Document> peersHostPort = (ArrayList<Document>) rxMsg.get("peers");
 				        			for(Document hostPort:peersHostPort) peer.getGlobalBFSQueue().add(new HostPort(hostPort));
-				        			//closeSocket(out,in,socket);
+				        			closeSocket(out,in,socket);
 				        			BFSNextPeer();
 				        				
 				        		}        					
@@ -216,11 +188,11 @@ public class ClientMain {
 				new PeerRunnable((HostPort) peer.getGlobalBFSQueue(),this.peer);
 			else {
 				log.severe(this.getName()+" : "+"Thread has failed to find any peer to connect");
-				//closeSocket(out,in,socket);
+				closeSocket(out,in,socket);
 			}
 		}
 
-		private void closeSocket(DataOutputStream out,DataInputStream in,Socket socket) {
+		private void closeSocket(BufferedWriter out,BufferedReader in,Socket socket) {
 			try	{
 				if(out!=null)    out.close();
 				if(in!=null)     in.close();
