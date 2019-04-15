@@ -74,6 +74,7 @@ public class Peer
         
 
 		//start the event processor
+        //
         Thread eventProcessor = new Thread(new EventProcessor(connectionManager));
         eventProcessor.start();
         

@@ -30,6 +30,7 @@ public class ClientMain {
         ClientMain agent = new ClientMain(connectionManager);        
     	
     }
+    
 
     public ClientMain(ConnectionManager connectionManager) {
     	this.globalBFSQueue  = new LinkedList<HostPort>(); 
@@ -54,11 +55,14 @@ public class ClientMain {
 	private class PeerRunnable extends Thread {		
 		 
 		private HostPort pHostPort;
-		private DataInputStream in;
-		private DataOutputStream out;
+		//private DataInputStream in;
+		//private DataOutputStream out;
+		private BufferedReader in;
+		private BufferedWriter out;
 		private Logger log = Logger.getLogger(PeerRunnable.class.getName());
 		private Protocol protocol;
 		private ClientMain peer;
+		Socket socket = null;
 		
 		public PeerRunnable(HostPort pHostPort, ClientMain peer){
 			this.pHostPort = pHostPort;
@@ -69,7 +73,7 @@ public class ClientMain {
 
 		public void run() {
 			// System.out.println("Peer Thread Started");
-	    	Socket socket =null;
+	    	
 	    	boolean connected = false;    	
 	    	Document rxMsg = new Document();
 	    	int timer = 1;
@@ -79,33 +83,29 @@ public class ClientMain {
 	    		 */
 	    		while (!connected && timer<=5){ 	
 	    			System.out.println("Timer: "+ timer);
-	    				log.info(String.format("Trying peer=%s:%s..." , pHostPort.host , pHostPort.port));
+	    				log.warning(this.getName()+ ":"+"Trying peer=%s:%s..." + pHostPort.host + pHostPort.port);
 	    				try	{
-	        				socket = new Socket(pHostPort.host,pHostPort.port);
-	            			if (socket.isConnected()){
+	        				socket = new Socket(pHostPort.host,pHostPort.port);// an object is only assigned to socket if a connection is established   					 
+	            			if (socket.isConnected() && !socket.isClosed()){
 	            				socket.setKeepAlive(true);
-	            				System.out.println("Socket Connected to peer "
-	            						+ pHostPort.host + ":" + pHostPort.port );
+	            				
 	            				connected = true;
-	            				// after that a thread must be started to keep monitoring if
-	            				// socket is alive or not. In case it is disconnected , it should
-	            				// retry for some time (10s) afterwards a new connect request
-	            				// to other peers in queue must be sent.
+	            				log.warning(this.getName()+ ":"+"Socket Connected to peer "
+	            						+ pHostPort.host + pHostPort.port );
+	            				log.warning(this.getName() + socket.getLocalSocketAddress());
+
 	            			}
 	    				}catch (ConnectException e){// Failed to connect to socket 
-	    					log.severe("Connection attempt to " 
+	    					log.severe(this.getName()+ ":"+"Connection Exception in attempt to " 
 	    							+ pHostPort.host + ":" + pHostPort.port + " failed.");    					    					
 	    				}catch (NullPointerException m){
-	    	    			log.warning("socket is not open, " 
+	    	    			log.warning(this.getName()+ ":"+"socket is not open, " 
 	    	    					+ pHostPort.host + ":" + pHostPort.port);
 	    	    		}catch (Exception z)	{
-	    	    			log.warning(z.getMessage() 
+	    	    			z.printStackTrace();
+	    	    			log.warning(this.getName()+ ":"+z.getMessage() 
 	    	    					+ pHostPort.host + ":" + pHostPort.port);
-	    	    		}finally	{
-	    	    			//commented as closing the socket at this stage will break the handshake attempt below
-	    	    			//this should be added in the exception blocks
-	    		    		//closeSocket(out,in,socket);
-	    		    	}
+	    	    		}
 	    				
 	    				// try to establish new Socket Connection after 100ms
 	    	    		try {
@@ -116,82 +116,125 @@ public class ClientMain {
 	    				}
 	    	    		timer++; //thread wait for 100msec so count if timer =100 will make 10sec
 	    		}
-	    		//if connected to a peer before time out...
-	    		if(connected) {
-	    			try{
-		    			if (socket.isConnected()){
-			    				in =  new DataInputStream(socket.getInputStream());
-			        			out = new DataOutputStream(socket.getOutputStream());  			
-			        			
-			        			//out.writeUTF(this.protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST,null));
-			        			//Just put temporarly to test handshakes at least!
-			        	        Document doc = new Document();
-			        	        doc.append("command", Constants.Command.HANDSHAKE_REQUEST.name());
-	        	                Document pd1 = new  Document();
-	        		            pd1.append("host", pHostPort.host);
-	        		            pd1.append("port", pHostPort.port);
-	        		            doc.append("hostPort", pd1);
-	        		            log.info("Sending to "+pHostPort.toString()+" message: "+doc.toJson());
-			        			out.writeUTF(doc.toJson());
-
-								Message inMsg = new Message(doc);
-								inMsg.setFromAddress(pHostPort);
-								connectionManager.getIncomingMessagesQueue().put(inMsg);
-	        		            ///////////////End of Test code////////////
-								rxMsg =  Document.parse(in.readUTF());
-			        			
-			        			if (Protocol.validateHSRefused(rxMsg)){
-			        				ArrayList<Document> peersHostPort = (ArrayList<Document>) rxMsg.get("peers");
-			        				for(Document hostPort:peersHostPort) peer.getGlobalBFSQueue().add(new HostPort(hostPort));
-			        				closeSocket(out,in,socket);
-			        				BFSNextPeer();
-			        				
-			        				      					
-			        			}else if (Protocol.validateHSResponse(rxMsg)){
-			        				Document hostPort = (Document) rxMsg.get("hostPort");
-			        				log.info("Success! BitBox connected to " + hostPort.getString("host") +
-			        						" at port " + hostPort.getLong("port") + " for asynchronous communication." );
-			        				
-			        				//Since handshake is successful add the socket to the active connection list for further communications
-		            				connectionManager.addConnection(socket);
-			        			}else
-			        				System.out.println("message invalid"); 
-			        				out.writeUTF(this.protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST,null));
-			        				closeSocket(out,in,socket);
-			        				log.warning("Message_Invalid: Connection to this peer terminated");
-			        				//Ask team if a new connection needed after message invalid
-			        				BFSNextPeer();
-		    			}		
-	    			}
-		    		catch (NullPointerException m){
-		    				log.warning(m.getMessage() + "NullPointerException");
-		    				m.printStackTrace();
+	    		
+	    		
+	    		if(socket!=null) {
+	    			log.warning(this.getName()+ ":"+"Is Client Socket Connected: " + socket.isConnected());
+		    		log.severe(this.getName()+ ":"+"Is Cleint Socket Closed: " +socket.isClosed());
+		    		
+		    		if (socket.isConnected() && !socket.isClosed()){//if connected to a peer before time out...
+		    			try{
+		    					log.warning(this.getName()+ ":"+"Trying to initiate Handshake_Request");
+				    			//in =  new DataInputStream(socket.getInputStream());
+				        		//out = new DataOutputStream(socket.getOutputStream());  
+		    					InputStream immin =  socket.getInputStream();
+		    					OutputStream immout =  socket.getOutputStream();
+		    					log.warning(this.getName()+ ":"+"Client Input and Output Stream Successfully Initiated");	
+		    					//in = new DataInputStream(immin);  
+		    					//out =  new DataOutputStream(immout);
+		    					in = new BufferedReader(new InputStreamReader(immin,"UTF8"));  
+		    					out =  new BufferedWriter(new OutputStreamWriter(immout,"UTF8"));
+				        		log.warning(this.getName()+ ":"+"Cient Input and Output Data Stream Successfully Initiated");	
+				        		log.warning(this.getName()+ ":"+"Client Sending Handshake_Request");
+				        		
+					   			 String localAddress = socket.getLocalSocketAddress().toString();
+					   			 //System.out.println(localAddress);
+					   			 String[] localAddressSplit = localAddress.split(":");
+					   			 // System.out.println(localAddressSplit[0]);
+					   			 String hostAddress=localAddressSplit[0].substring(1);
+					   			 System.out.println("Client Host " + hostAddress);
+					   			 System.out.println("Client Port: " + localAddressSplit[1]);
+				        		 Document message = new Document();
+								 Document subMessage = new Document();							 
+								 subMessage.append("host", hostAddress); // Modified for static reference
+								 subMessage.append("port", Long.parseLong(localAddressSplit[1])); // Modified for static reference
+								 
+								 message.append("hostPort", subMessage);	
+								 message.append("command", "HANDSHAKE_REQUEST");
+								 
+								 System.out.println(message.toJson());
+								 out.write(message.toJson() + "\n");
+								 out.flush();
+								 
+								 
+								 
+				        		//out.writeUTF(this.protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST,null));				        		
+				        		log.warning(this.getName()+ ":"+"Client Sent Handshake_Request");
+				        		String s= in.readLine();
+				        		log.warning("ReadUTF "+s);
+				        		rxMsg =  Document.parse(s);
+				        		System.out.println(rxMsg.toJson());
+				        		log.warning(this.getName()+ ":"+"Client Received Handshake_response");
+				        			
+				        		if (Protocol.validateHSRefused(rxMsg)){
+				        			ArrayList<Document> peersHostPort = (ArrayList<Document>) rxMsg.get("peers");
+				        			for(Document hostPort:peersHostPort) peer.getGlobalBFSQueue().add(new HostPort(hostPort));
+				        			//closeSocket(out,in,socket);
+				        			BFSNextPeer();
+				        				
+				        		}        					
+				        		else if (Protocol.validateHSResponse(rxMsg)){
+				        			Document hostPort = (Document) rxMsg.get("hostPort");
+				        			System.out.println("BitBox connected to " + hostPort.getString("host") +
+				        					" at port " + hostPort.getLong("port") + " for asynchronous communication" );
+				        			
+				        			connectionManager.addConnection(socket);
+				        		}else {
+				        				
+				        				System.out.println("message invalid"); 
+				        				out.write(this.protocol.createMessage(Constants.Command.INVALID_PROTOCOL,null));
+				        				out.flush();
+				        				//closeSocket(out,in,socket);
+				        				log.warning(this.getName()+ ":"+"Message_Invalid: Connection to this peer terminated");
+				        				//Ask team if a new connection needed after message invalid
+				        				BFSNextPeer();
+				        			}
+			    			}
+			    			
+				    	catch (NullPointerException m){
+				    		
+				    			log.warning(this.getName()+ ":"+m.getMessage() + ": Null Pointer Exception during message processing");
+				    	}
+		    			catch (IOException m){
+				    		
+				    			log.warning(this.getName()+ ":"+m.getMessage() + ": IOException during message processing");
 		    			}
-		    		catch (Exception z){
-	    					log.severe(z.getMessage() + "Exception");
-		    				z.printStackTrace();
-		    			}
-	    		}else // if not connected to a peer after timer expiry.
-	    			BFSNextPeer();
+				    	catch (Exception z){
+				    			log.warning(this.getName()+ " Exception during message processing : "+z.getMessage());
+				    	}
+		    		}
+		}
+	    		else { // if not connected to a peer after timer expiry.
+	    			log.warning(this.getName()+ ":Trying next Peer");
+	    			BFSNextPeer();	
+		    		
+	    		}
 		}
 		
 		private void BFSNextPeer() {
 			if(!peer.getGlobalBFSQueue().isEmpty())
 				new PeerRunnable((HostPort) peer.getGlobalBFSQueue(),this.peer);
-			else 
-				System.out.println("Thread has failed to find any peer to connect");			
+			else {
+				log.severe(this.getName()+" : "+"Thread has failed to find any peer to connect");
+				//closeSocket(out,in,socket);
+			}
 		}
 
 		private void closeSocket(DataOutputStream out,DataInputStream in,Socket socket) {
 			try	{
 				if(out!=null)    out.close();
 				if(in!=null)     in.close();
-				if(socket!=null) socket.close();
-					
+				if(socket!=null) {
+					socket.close();				
+					log.warning(this.getName()+ ":"+"Socket Closed");
+				}else {
+					log.warning(this.getName()+ ":"+"Socket found Null when trying to close");
+				}
 			}catch(IOException e){
-				log.warning(e.getMessage());
+				log.warning(this.getName()+ ":"+e.getMessage());
 			}		
 		}
 	}
 		
+   
 }

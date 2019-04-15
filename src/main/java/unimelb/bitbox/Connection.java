@@ -17,8 +17,9 @@ public class Connection implements Runnable {
 	String outBuffer;
 	Logger log;
 	HostPort peer;
-	BlockingQueue<Message> incomingMessagesQueue;
-	
+	BlockingQueue<Message> incomingMessagesQueue;    
+	private volatile boolean running = true;
+
 	public Connection(Socket clientSocket, BlockingQueue<Message> MessageQueue, ProcessMessage connectionManager) 
 	{
 		log = Logger.getLogger(Connection.class.getName());
@@ -41,13 +42,17 @@ public class Connection implements Runnable {
 				
 	}
 	
+	public void stop() {
+        running = false;
+    }
+	
 	
 	@Override
 	public void run()
 	{
 		try
 		{
-			while (true)
+			while (running)
 			{
 				if (this.outBuffer!="") {
 					log.info("outBuffer content to send: "+outBuffer);
