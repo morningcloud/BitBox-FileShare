@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.Constants;
+import unimelb.bitbox.util.Constants.PeerSource;
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.HostPort;
 
@@ -82,7 +83,7 @@ public class ClientMain {
 	    		 */
 	    		while (!connected && timer<=5){ 	
 	    			System.out.println("Timer: "+ timer);
-	    				log.warning(this.getName()+ ":"+"Trying peer=%s:%s..." + pHostPort.host + pHostPort.port);
+	    				log.warning(this.getName()+ ":"+String.format("Trying peer=%s:%s..." , pHostPort.host , pHostPort.port));
 	    				try	{
 	        				socket = new Socket(pHostPort.host,pHostPort.port);// an object is only assigned to socket if a connection is established   					 
 	            			if (socket.isConnected() && !socket.isClosed()){
@@ -90,7 +91,7 @@ public class ClientMain {
 	            				
 	            				connected = true;
 	            				log.warning(this.getName()+ ":"+"Socket Connected to peer "
-	            						+ pHostPort.host + pHostPort.port );
+	            						+ pHostPort.host +":"+ pHostPort.port );
 	            				log.warning(this.getName() + socket.getLocalSocketAddress());
 
 	            			}
@@ -108,7 +109,7 @@ public class ClientMain {
 	    				
 	    				// try to establish new Socket Connection after 100ms
 	    	    		try {
-	    					Thread.sleep(100);
+	    					Thread.sleep(Constants.BITBOX_CONNECTION_THREAD_SLEEP_TIME);
 	    				} catch (InterruptedException e) {
 	    					// TODO Auto-generated catch block
 	    					e.printStackTrace();
@@ -150,11 +151,11 @@ public class ClientMain {
 				        			System.out.println("BitBox connected to " + hostPort.getString("host") +
 				        					" at port " + hostPort.getLong("port") + " for asynchronous communication" );
 				        			
-				        			connectionManager.addConnection(socket);
+				        			connectionManager.addConnection(socket, PeerSource.CLIENT);
 				        		}else {
 				        				
 				        				System.out.println("message invalid"); 
-				        				out.write(this.protocol.createMessage(Constants.Command.INVALID_PROTOCOL,null));
+				        				out.write(this.protocol.createMessage(Constants.Command.INVALID_PROTOCOL,"message invalid".split(":")));
 				        				out.flush();
 				        				//closeSocket(out,in,socket);
 				        				log.warning(this.getName()+ ":"+"Message_Invalid: Connection to this peer terminated");

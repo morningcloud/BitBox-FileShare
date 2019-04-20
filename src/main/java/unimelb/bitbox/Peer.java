@@ -74,9 +74,26 @@ public class Peer
         
 
 		//start the event processor
-        //
-        Thread eventProcessor = new Thread(new EventProcessor(connectionManager));
+        EventProcessor eventProcess= new EventProcessor(connectionManager);
+        Thread eventProcessor = new Thread(eventProcess);
         eventProcessor.start();
+        
+        
+        long syncInterval = Long.parseLong(Configuration.getConfigurationValue("syncInterval"));
+        //start sync event timer tread
+        //TODO Not consistante need to implement in a better way
+        Thread syncThread = new Thread(new Runnable() {
+        							public void run() {
+        								log.info("Time for Sync");
+        								if(connectionManager.connectedPeers.size()>0)
+        									eventProcess.processSyncEvents();
+        								try {
+											Thread.sleep(syncInterval);
+										} catch (InterruptedException e) {
+											// Ignore
+										}
+        							}});
+        syncThread.start();
         
     }
 		

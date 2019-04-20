@@ -1,6 +1,11 @@
 package unimelb.bitbox.util;
 
 public class Constants{
+
+	public static final int BITBOX_SOCKET_TIMEOUT = 3000; //Socket read timeout in milliseconds
+	public static final long BITBOX_THREAD_SLEEP_TIME = 1000; //Thread Sleep time in milliseconds
+	public static final long BITBOX_CONNECTION_THREAD_SLEEP_TIME = 1000; //Thread Sleep time in milliseconds
+	
 	
 	public enum State {
 	
@@ -22,7 +27,8 @@ public class Constants{
 		DIRECTORY_DELETE_REQUEST, 
 		DIRECTORY_DELETE_RESPONSE,
 		FILE_BYTES_REQUEST, 
-		FILE_BYTES_RESPONSE;
+		FILE_BYTES_RESPONSE,
+		SYNC_EVENTS;
 		
 	    public static Command fromString(String cmd)
 	    {
@@ -46,5 +52,11 @@ public class Constants{
 		FILE_MODIFY_REQUEST,
 		DIRECTORY_CREATE_REQUEST,
 		DIRECTORY_DELETE_REQUEST	
+	}
+	
+	public enum PeerSource
+	{
+		CLIENT,
+		SERVER
 	}
 }

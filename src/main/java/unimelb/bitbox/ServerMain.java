@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 import java.net.InetAddress;
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.FileSystemManager;
+import unimelb.bitbox.util.Constants.PeerSource;
 import unimelb.bitbox.util.*;
 
 
@@ -50,7 +51,7 @@ public class ServerMain implements Runnable {
 				//it should check if max incoming connection is reached
 				//then send either INVALID_PROTOCOL,CONNECTION_REFUSED or HANDSHAKE_RESPONSE
 				//only after successful handshake it should add to the connection
-				this.connectionManager.addConnection(clientSocket);
+				this.connectionManager.addConnection(clientSocket, PeerSource.SERVER);
 				log.info(String.format("Connected to: %s, total number of established connections: %s\n",
 						clientSocket.getInetAddress().getHostName(),
 						this.connectionManager.connectedPeers.size()

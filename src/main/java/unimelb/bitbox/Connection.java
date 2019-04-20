@@ -1,37 +1,40 @@
 package unimelb.bitbox;
 import java.net.*;
 import java.io.*;
-import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
-
-import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.*;
+import unimelb.bitbox.util.Constants.*;
 
 public class Connection implements Runnable {
 	
-	DataInputStream in;
-	DataOutputStream out;
+	BufferedReader in;
+	BufferedWriter out;
 	Socket clientSocket;
-	ProcessMessage connectionManager;
-	String inBuffer;
+	NetworkObserver networkObserver;
+	//Seems risky to define it at class level
+	//String inBuffer;
+	PeerSource peerSource;
 	String outBuffer;
 	Logger log;
-	HostPort peer;
-	BlockingQueue<Message> incomingMessagesQueue;    
+	HostPort peer;   
 	private volatile boolean running = true;
 
-	public Connection(Socket clientSocket, BlockingQueue<Message> MessageQueue, ProcessMessage connectionManager) 
+	public Connection(Socket clientSocket, NetworkObserver connectionManager, PeerSource source) 
 	{
 		log = Logger.getLogger(Connection.class.getName());
 		try
 		{
-			this.in = new DataInputStream(clientSocket.getInputStream());
-			this.out = new DataOutputStream(clientSocket.getOutputStream());
+			this.in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(),"UTF8"));  
+			this.out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(),"UTF8"));
 			this.clientSocket = clientSocket;
-			this.connectionManager = connectionManager;
-			this.incomingMessagesQueue = MessageQueue;
+			//GHD: Set socket read timeout and keep alive flags
+			this.clientSocket.setKeepAlive(true);
+			this.clientSocket.setSoTimeout(Constants.BITBOX_SOCKET_TIMEOUT);
+			
+			this.networkObserver = connectionManager;
 			//connection ip/port
-			this.peer = new HostPort(clientSocket.getInetAddress().getHostAddress(), clientSocket.getLocalPort());
+			this.peer = new HostPort(clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
+			this.peerSource = source;
 			log.info("Active Connection maintained for: "+peer.toString());
 		}
 		
@@ -42,6 +45,9 @@ public class Connection implements Runnable {
 				
 	}
 	
+	/**
+	 * added in case we need to temporarily stop the thread from running
+	 */
 	public void stop() {
         running = false;
     }
@@ -56,24 +62,38 @@ public class Connection implements Runnable {
 			{
 				if (this.outBuffer!="") {
 					log.info("outBuffer content to send: "+outBuffer);
-					out.writeUTF(outBuffer);
+    				out.write(outBuffer);
+    				//GHD: Clear buffer string after writing the related message to socket
+    				out.flush();
+    				outBuffer = "";
 				}
-				receive();
+				String inBuffer=receive();
 				if (!(inBuffer==null))
 				{
-					log.info("inBuffer content received: "+inBuffer);
-					Message inMsg = new Message(inBuffer);
-					inMsg.setFromAddress(peer);
-					incomingMessagesQueue.put(inMsg); //add to inQueue that is used by Event Processor
+					try {
+						log.info("inBuffer content received: "+inBuffer);
+						networkObserver.messageReceived(peer, inBuffer); //add to inQueue that is used by Event Processor
 					//this.connectionManager.enqueueMessage(inBuffer);
+					}
+					catch(Exception e) {
+						log.severe("exception in message receive "+e.getMessage());
+						e.printStackTrace();
+					}
 				}
-				else
-					System.out.println("In buffer is null");
+				//GHD: Commented as this would be expected
+				//else
+				//	System.out.println("In buffer is null");
+				
+				Thread.sleep(Constants.BITBOX_THREAD_SLEEP_TIME);
 			}
 		}
 		
 		catch (Exception e)
 		{
+			//TODO should raise connection close event to the connection manager to remove this from the list
+			networkObserver.connectionClosed(peer);
+			//TODO close the socket and cleanup
+			
 			e.printStackTrace();
 		}
 	}
@@ -89,7 +109,7 @@ public class Connection implements Runnable {
 		try
 		{
 			
-			Document handshakeRequest = Document.parse(in.readUTF());
+			Document handshakeRequest = Document.parse(in.readLine());
 			if (Protocol.validate(handshakeRequest))
 			{
 				status = true;
@@ -100,6 +120,10 @@ public class Connection implements Runnable {
 			else
 				status = false;
 		}
+		catch (SocketTimeoutException e)
+		{
+			log.warning("isHSRReceived timeout");
+		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
@@ -108,20 +132,23 @@ public class Connection implements Runnable {
 		return status;
 	}
 	
-	public void send(String message)
+	//GHD: maybe sunchronized is required here
+	public /*synchronized*/ void send(String message)
 	{
-		log.info("in connection.send, message: "+message);
+		log.info(String.format("In connection.send, Peer: %s message: %s", peer.toString(),message));
 		this.outBuffer=message;
 	}
 	
 	public String receive()
 	{
+		String inBuffer = null;
 		try
 		{
-			//TODO: this needs to be revised, the read is blocking, thus no outgoing message will be sent while this is waiting for incoming messages
-			log.info("blocked at in.readUTF()");
-			inBuffer = this.in.readUTF();
-			log.info("after at in.readUTF()");
+			inBuffer = this.in.readLine();
+		}
+		catch(SocketTimeoutException ex)
+		{
+			//Do nothing, this is expected if no message arrived within the socket timeout set
 		}
 		catch (Exception e)
 		{

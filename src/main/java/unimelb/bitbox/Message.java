@@ -2,6 +2,7 @@ package unimelb.bitbox;
 
 import java.io.IOException;
 import java.io.ObjectInputStream.GetField;
+import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,42 +24,18 @@ public class Message {
 	private Command command;
 	private String content;
 	private String message;
-	private byte[] binaryData;
+	private ByteBuffer binaryData;
 	private String pathName;
 	private boolean isSuccessStatus;
 	private String md5;
 	private long lastModified;
 
 	private long fileSize;
-	private int position;
-	private int length;
+	private long position;
+	private long length;
 	private List<HostPort> peersList = new ArrayList<>();
 
 	private static Logger log = Logger.getLogger(Message.class.getName());
-	
-	public static void main( String[] args ) throws IOException, NumberFormatException, NoSuchAlgorithmException
-    {
-        //Dummy testing
-    	System.setProperty("java.util.logging.SimpleFormatter.format",
-                "[%1$tc] %2$s %4$s: %5$s%n");
-    	
-    	String str="{\"command\":\"INVALID_PROTOCOL\",\"pathName\":\"dir/subdir/etc\"\"peers\": [{\"host\" : \"sunrise.cis.unimelb.edu.au\",\"port\" : 8111},{\"host\" : \"bigdata.cis.unimelb.edu.au\",\"port\" : 8500}]}";
-    	
-		log.info("message "+str);
-    	
-    	Message msg;
-    	
-		try {
-			msg = new Message(str);
-			log.info("test command " + msg.command);
-			log.info("test "+msg.pathName);
-
-			log.info(msg.getJsonMessage(Command.INVALID_PROTOCOL));
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			log.log(Level.SEVERE, e.toString());
-		}
-    }
 	
 	public Message(String jsonMessage) throws Exception {
 		//parse jsonMessage
@@ -68,6 +45,27 @@ public class Message {
 	//TODO: Should not have this empty constructor
 	public Message() {
 		
+	}
+	
+	//Copy new instance of an existing message
+	public Message(Message msg) {
+		this.document = new Document();
+		this.toAddress = msg.getToAddress();
+		this.fromAddress = msg.getFromAddress();
+		
+		this.command = msg.getCommand();
+		this.content=msg.getContent();
+		this.message=msg.getMessage();
+		this.binaryData=msg.getBinaryData();
+		this.pathName=msg.getPathName();
+		this.isSuccessStatus=msg.getSuccessStatus();
+		this.md5=msg.getMd5();
+		this.lastModified=msg.getLastModified();
+
+		this.fileSize=msg.getFileSize();
+		this.position=msg.getPosition();
+		this.length=msg.getLastModified();
+		this.peersList = msg.getPeersList();
 	}
 	
 	public Message(Document doc) throws Exception {
@@ -84,11 +82,9 @@ public class Message {
 		parseMessage(command,doc);
 	}
 	
-	private void parseMessage(Command cmd,Document doc) {
-		//Read relivant content based on the command
-		content = doc.getString("content");
+	private void parseMessage(Command cmd, Document doc) {
 		
-		//Read and validate tags depending on the incoming command
+		//TODO Read and validate tags depending on the incoming command
 		switch(cmd) {
 		case DIRECTORY_CREATE_REQUEST:
 			//TO DO
@@ -97,10 +93,12 @@ public class Message {
 		default:
 				
 		}
-		
+
+		//Read relevant content based on the command
 		message = doc.getString("message");
+		content = doc.getString("content");
 		if((content!=null) && !content.isEmpty())
-			binaryData = Base64.decodeBase64(content);
+			binaryData.put(Base64.decodeBase64(content));
 		
 		pathName = doc.getString("pathName");
 		
@@ -129,9 +127,18 @@ public class Message {
 		}
 	}
 	
+	public String getJsonMessage() {
+        return getJsonMessage(command);
+	}
+	
 	public String getJsonMessage(Command cmd) {
-
+		constructDocument(cmd);
+		return document.toJson()+"\n";
+	}
+	
+	private void constructDocument(Command cmd) {
         Document doc = new Document();
+        Document docFD;
         doc.append("command", cmd.name());
         
         switch (cmd) {
@@ -139,12 +146,13 @@ public class Message {
                 Document pd1 = new  Document();
 	            pd1.append("host", fromAddress.host);
 	            pd1.append("port", fromAddress.port);
-            
 	            doc.append("hostPort", pd1);
 	        	break;
+	        	
 	        case INVALID_PROTOCOL:
 	        	doc.append("message", message);
 	        	break;
+	        	
 	        case CONNECTION_REFUSED:
 	        	doc.append("message", message);
 	            ArrayList<Document> peerList = new ArrayList<Document>();
@@ -156,34 +164,79 @@ public class Message {
 	            }
 	            doc.append("peers", peerList);
 	            break;
+
+	        case DIRECTORY_CREATE_REQUEST:
+	        case DIRECTORY_DELETE_REQUEST:
+	            doc.append("pathName", pathName);
+	        	break;
+
+	        case DIRECTORY_CREATE_RESPONSE:
+	        case DIRECTORY_DELETE_RESPONSE:
+	            doc.append("pathName", pathName);
+	            doc.append("message", message);
+	            doc.append("status", isSuccessStatus);
+	        	break;
+	            
 	        case FILE_BYTES_REQUEST:
-	            Document docFD = new Document();
+	            docFD = new Document();
 	            docFD.append("md5",md5);
 	            docFD.append("lastModified",lastModified);
 	            docFD.append("fileSize",fileSize);
 	            
 	            doc.append("fileDescriptor", docFD);
-	            break;
-	        case FILE_CREATE_REQUEST:
-	            Document docDesc = new Document();
-	            docDesc.append("md5",md5);
-	            docDesc.append("lastModified",lastModified);
-	            docDesc.append("fileSize",fileSize);
+	            doc.append("pathName", pathName);
+	            doc.append("position", position);
+	            doc.append("length", length);
 	            
-	            doc.append("fileDescriptor", docDesc);
+	            break;
+	            
+	        case FILE_BYTES_RESPONSE:
+	            docFD = new Document();
+	            docFD.append("md5",md5);
+	            docFD.append("lastModified",lastModified);
+	            docFD.append("fileSize",fileSize);
+	            
+	            doc.append("fileDescriptor", docFD);
+	            doc.append("pathName", pathName);
+	            doc.append("position", position);
+	            doc.append("length", length);
+	            doc.append("content", content);
+	            doc.append("message", message);
+	            doc.append("status", isSuccessStatus);
+	            break;
+	            
+	        case FILE_CREATE_RESPONSE:
+	        case FILE_DELETE_RESPONSE:
+	        case FILE_MODIFY_RESPONSE:
+	            docFD = new Document();
+	            docFD.append("md5",md5);
+	            docFD.append("lastModified",lastModified);
+	            docFD.append("fileSize",fileSize);
+	            
+	            doc.append("fileDescriptor", docFD);
+	            doc.append("pathName", pathName);
+	            doc.append("message", message);
+	            doc.append("status", isSuccessStatus);
+	            break;
+
+	        case FILE_CREATE_REQUEST:
+	        case FILE_DELETE_REQUEST:
+	        case FILE_MODIFY_REQUEST:
+	            docFD = new Document();
+	            docFD.append("md5",md5);
+	            docFD.append("lastModified",lastModified);
+	            docFD.append("fileSize",fileSize);
+	            
+	            doc.append("fileDescriptor", docFD);
 	            doc.append("pathName", pathName);
 	            break;
+	            
 		default:
 			//throw error
 			break;
         }
-        
-		return doc.toJson();
-	}
-	
-	public String getJsonMessage() {
-
-        return getJsonMessage(command);
+        //update document object
+        this.document = doc;
 	}
 	
 	public Command getCommand() {
@@ -210,7 +263,7 @@ public class Message {
 		this.pathName = pathName;
 	}
 
-	public boolean isSuccessStatus() {
+	public boolean getSuccessStatus() {
 		return isSuccessStatus;
 	}
 
@@ -242,19 +295,19 @@ public class Message {
 		this.fileSize = fileSize2;
 	}
 
-	public int getPosition() {
+	public long getPosition() {
 		return position;
 	}
 
-	public void setPosition(int position) {
+	public void setPosition(long position) {
 		this.position = position;
 	}
 
-	public int getLength() {
+	public long getLength() {
 		return length;
 	}
 
-	public void setLength(int length) {
+	public void setLength(long length) {
 		this.length = length;
 	}
 
@@ -270,8 +323,8 @@ public class Message {
 		return content;
 	}
 	
-	public void setContent(byte[] binaryData) {
-		content = Base64.encodeBase64String(binaryData);
+	public void setContent(ByteBuffer binaryData) {
+		content = Base64.encodeBase64String(binaryData.array());
 		this.setBinaryData(binaryData);
 	}
 
@@ -279,11 +332,11 @@ public class Message {
 		this.content = content;
 	}
 
-	public byte[] getBinaryData() {
+	public ByteBuffer getBinaryData() {
 		return binaryData;
 	}
 
-	public void setBinaryData(byte[] binaryData) {
+	public void setBinaryData(ByteBuffer binaryData) {
 		this.binaryData = binaryData;
 	}
 
@@ -291,8 +344,17 @@ public class Message {
 		return document;
 	}
 
-	public void setDocument(Document document) {
-		this.document = document;
+	public void setDocument(Document doc) throws InvalidCommandException {
+		String cmd = doc.getString("command");
+		if (cmd == null || cmd.isEmpty())
+				throw new InvalidCommandException("command cannot be empty.");
+		
+		command = Command.fromString(cmd);
+		if (command == null)
+			throw new InvalidCommandException("Invalid command.");
+		
+		this.document = doc;
+		this.parseMessage(command, document);
 	}
 
 	public HostPort getToAddress() {

@@ -61,7 +61,7 @@ public class Protocol
 			 */
 			case HANDSHAKE_RESPONSE:
 			{
-				response.append("command",messageType.toString());
+				response.append("command", messageType.toString());
 				response.append("hostPort", Document.parse(args[0]));
 				break;
 			}
@@ -82,13 +82,13 @@ public class Protocol
 			case HANDSHAKE_REQUEST:
 			{	
 				 response.append("command",messageType.toString());
-				 String hostAddress=args[0].substring(1);				 
+				 String hostAddress = args[0].substring(1);				 
 				 Document subMessage = new Document();							 
 				 subMessage.append("host", hostAddress); 
 				 subMessage.append("port", Long.parseLong(args[1])); 				 
 				 response.append("hostPort", subMessage);	
 				 response.append("command", "HANDSHAKE_REQUEST");								 
-				 System.out.println("Document Generated" + response);
+				 System.out.println("Document Generated" + response.toJson());
 				 break;
 			}
 			default: 
