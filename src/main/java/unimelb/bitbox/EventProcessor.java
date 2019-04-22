@@ -127,13 +127,12 @@ public class EventProcessor implements FileSystemObserver, Runnable
 
 	public void processSyncEvents()
 	{
-		log.info("Interval SyncEvent Generation Started.");
+		log.info("Scheduled Interval SyncEvent Generation Started...");
 		ArrayList<FileSystemEvent> pathevents=new ArrayList<FileSystemEvent>();
 		pathevents = fileSystemManager.generateSyncEvents();
 		
 		for(FileSystemEvent pathevent : pathevents) {
 			log.info(pathevent.toString());
-			//Handling all possible file system manager events.
 			Message msg = constructEventMessage(pathevent);
 			if (msg!=null)
 				connectionManager.sendAllPeers(msg);

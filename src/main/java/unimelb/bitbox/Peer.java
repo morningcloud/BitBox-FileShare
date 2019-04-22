@@ -63,33 +63,38 @@ public class Peer
         Thread serverThread=new Thread(new ServerMain(connectionManager));
         serverThread.start();
     	
+        //Start client component thread
         new ClientMain(connectionManager);
 
-
-		
         
         //start the event processor
         EventProcessor eventProcess= new EventProcessor(connectionManager);
         Thread eventProcessor = new Thread(eventProcess);
         eventProcessor.start();
         
-        /*
-        long syncInterval = Long.parseLong(Configuration.getConfigurationValue("syncInterval"));
+        
+        long syncInterval = Long.parseLong(Configuration.getConfigurationValue("syncInterval")) * 1000; //get time in milli
         //start sync event timer tread
-        //TODO Not consistante need to implement in a better way
+        //TODO Works but may implement in a better way
         Thread syncThread = new Thread(new Runnable() {
         							public void run() {
-        								log.info("Time for Sync");
-        								if(connectionManager.connectedPeers.size()>0)
-        									eventProcess.processSyncEvents();
-        								try {
-											Thread.sleep(syncInterval);
-										} catch (InterruptedException e) {
-											// Ignore
-										}
-        							}});
+        								while(true) {
+	        								log.info("Time for Sync");
+	        								if(connectionManager.activePeerConnection.size()>0)
+	        									eventProcess.processSyncEvents();
+	        								try {
+												Thread.sleep(syncInterval);
+											} catch (InterruptedException e) {
+												// Ignore
+											}catch (Exception e) {
+												log.severe("Exception in SyncEvents Timer Thread");
+												e.printStackTrace();
+											}
+        								}
+        							}
+        });
         syncThread.start();
-        */
+        
     }
 		
    
