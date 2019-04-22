@@ -455,12 +455,15 @@ public class EventProcessor implements FileSystemObserver, Runnable
 								Message byteReqMessage = new Message(message);
 								byteReqMessage.setCommand(Command.FILE_BYTES_REQUEST);
 								byteReqMessage.setPosition(0); //since it is first request the position is 0
-								byteReqMessage.setFileSize(blockSize); 
 								byteReqMessage.setLength(blockSize);
 								sendResponse(byteReqMessage);
 							}
+							else {
+								log.info(String.format("Another local file already exists with the same content of %s... Shortcut copy done.",pathName));
+							}
 						}
 						else {
+							log.severe("fileSystemManager.createFileLoader returned false!!");
 							message.setSuccessStatus(false);
 							message.setMessage("there was a problem creating the file");
 						}
@@ -468,12 +471,14 @@ public class EventProcessor implements FileSystemObserver, Runnable
 					catch (IOException e)
 					{
 						log.severe("IO error: "+e.getMessage());
+						e.printStackTrace();
 						message.setSuccessStatus(false);
 						message.setMessage("there was a problem creating the file");
 					}
 					catch (NoSuchAlgorithmException e)
 					{
 						log.severe("No such algorithm: "+e.getMessage());
+						e.printStackTrace();
 						message.setSuccessStatus(false);
 						message.setMessage("there was a problem creating the file");
 					}
@@ -495,6 +500,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 		catch (Exception e)
 		{
 			log.severe("Unhandled exception: "+e.getMessage());
+			e.printStackTrace();
 		}
 	}
 
@@ -590,7 +596,6 @@ public class EventProcessor implements FileSystemObserver, Runnable
 								Message byteReqMessage = new Message(message);
 								byteReqMessage.setCommand(Command.FILE_BYTES_REQUEST);
 								byteReqMessage.setPosition(0); //since it is first request the position is 0
-								byteReqMessage.setFileSize(blockSize); 
 								byteReqMessage.setLength(blockSize);
 								sendResponse(byteReqMessage);
 							}
@@ -641,6 +646,10 @@ public class EventProcessor implements FileSystemObserver, Runnable
 		long blockSize = Long.parseLong(Configuration.getConfigurationValue("blockSize"));
 		boolean send = false;
 		boolean cancelfile = false;
+		long fileSize = message.getFileSize();
+		//In case the file is small, set the block size to that for complete file fetching
+		//if (fileSize < blockSize)
+		//	blockSize = fileSize;
 		try
 		{	
 			//TODO: any need to re-send the same File byte request message again in case of failure??
@@ -659,10 +668,21 @@ public class EventProcessor implements FileSystemObserver, Runnable
 							//We need to initiate the first file byte request message
 							Message byteReqMessage = new Message(message);
 							byteReqMessage.setCommand(Command.FILE_BYTES_REQUEST);
-							byteReqMessage.setPosition(position + 1); //request next position
-							byteReqMessage.setFileSize(position + blockSize); 
-							byteReqMessage.setLength(blockSize);
-							sendResponse(byteReqMessage);
+							position += blockSize;
+							byteReqMessage.setPosition(position); //request next position
+							//byteReqMessage.setFileSize(position + blockSize); 
+							//get how much left to read
+							long toread = fileSize - position;
+							//if what is left less than the block size, set the length to that
+							if (toread <= 0) {
+								log.severe("Unexpected behaviour... checkWriteComplete returned false, but no more bytes left to read!");
+							}
+							else {
+								if (toread < blockSize)
+									blockSize = toread;
+								byteReqMessage.setLength(blockSize);
+								sendResponse(byteReqMessage);
+							}
 						}
 					}
 					else {

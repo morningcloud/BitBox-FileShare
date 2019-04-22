@@ -1,6 +1,7 @@
 package unimelb.bitbox;
 import java.net.*;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.logging.Logger;
 import unimelb.bitbox.util.*;
 import unimelb.bitbox.util.Constants.*;
@@ -14,7 +15,9 @@ public class Connection implements Runnable {
 	//Seems risky to define it at class level
 	//String inBuffer;
 	PeerSource peerSource;
-	String outBuffer;
+	//GHD: changed outBuffer to list to cater for multiple parallel send requests
+	ArrayList<String> outBuffer;
+	//String outBuffer;
 	Logger log;
 	HostPort peer;   
 	private volatile boolean running = true;
@@ -26,6 +29,7 @@ public class Connection implements Runnable {
 		{
 			this.in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(),"UTF8"));  
 			this.out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(),"UTF8"));
+			this.outBuffer = new ArrayList<String>();
 			this.clientSocket = clientSocket;
 			//GHD: Set socket read timeout and keep alive flags
 			this.clientSocket.setKeepAlive(true);
@@ -62,12 +66,11 @@ public class Connection implements Runnable {
 			{
 				if (!this.clientSocket.isClosed() & this.clientSocket.isConnected())
 				{
-					if (this.outBuffer!=null) {
-						log.info("outBuffer content to send: "+outBuffer);
-	    				out.write(outBuffer);
-	    				//GHD: Clear buffer string after writing the related message to socket
+					if (this.outBuffer.size()>0) {
+						String outString = outBuffer.remove(0);
+						log.info("outBuffer content to send: "+outString);
+	    				out.write(outString);
 	    				out.flush();
-	    				outBuffer = null;
 					}
 					
 					String inBuffer=receive();
@@ -121,7 +124,7 @@ public class Connection implements Runnable {
 	public /*synchronized*/ void send(String message)
 	{
 		log.info(String.format("In connection.send, Peer: %s message: %s", peer.toString(),message));
-		this.outBuffer=message;
+		this.outBuffer.add(message);
 	}
 	
 	public String receive()

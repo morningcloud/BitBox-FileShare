@@ -97,14 +97,14 @@ public class Message {
 		//Read relevant content based on the command
 		message = doc.getString("message");
 		content = doc.getString("content");
-		if((content!=null) && !content.isEmpty())
-			binaryData.put(Base64.decodeBase64(content));
-		
+		if((content!=null) && !content.isEmpty()) {
+			binaryData = ByteBuffer.wrap(Base64.decodeBase64(content));
+		}
 		pathName = doc.getString("pathName");
 		
 		isSuccessStatus = doc.containsKey("isSuccessStatus") ? doc.getBoolean("isSuccessStatus") : false;
-		position = doc.containsKey("position") ? doc.getInteger("position") : 0;
-		length = doc.containsKey("length") ? doc.getInteger("length") : 0;
+		position = doc.containsKey("position") ? doc.getLong("position") : 0;
+		length = doc.containsKey("length") ? doc.getLong("length") : 0;
 		
 		if(doc.containsKey("fileDescriptor"))
 		{
