@@ -63,26 +63,17 @@ public class Peer
         Thread serverThread=new Thread(new ServerMain(connectionManager));
         serverThread.start();
     	
+        new ClientMain(connectionManager);
 
-
-        //TE: Commenting this side, I want just a server.
-        /*
-        //Start client component thread
-        Thread clientThread=new Thread(new Runnable() {
-								        	public void run() {
-									        		new ClientMain(connectionManager);
-								        	}});
-        clientThread.start();
-        */
 
 		
-        /*
+        
         //start the event processor
         EventProcessor eventProcess= new EventProcessor(connectionManager);
         Thread eventProcessor = new Thread(eventProcess);
         eventProcessor.start();
         
-        
+        /*
         long syncInterval = Long.parseLong(Configuration.getConfigurationValue("syncInterval"));
         //start sync event timer tread
         //TODO Not consistante need to implement in a better way

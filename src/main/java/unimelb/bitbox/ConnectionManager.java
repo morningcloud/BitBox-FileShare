@@ -13,7 +13,8 @@ public class ConnectionManager implements NetworkObserver {
 	int MAX_NO_OF_CONNECTION;
 	private static Logger log = Logger.getLogger(ConnectionManager.class.getName());
 	//ArrayList<Connection> connectedPeers = new ArrayList<Connection>();
-	Map<String, Connection> connectedPeers;
+	Map<String, HostPort> activePeerHostPort;
+	Map<String, Connection> activePeerConnection;
 	HostPort serverHostPort;
 	private BlockingQueue<Message> incomingMessagesQueue;
 
@@ -22,14 +23,15 @@ public class ConnectionManager implements NetworkObserver {
 		this.MAX_NO_OF_CONNECTION = maxNoOfConnections;
 		this.incomingMessagesQueue = MessageQueue;
 		this.serverHostPort = serverHostPort;
-		this.connectedPeers = new HashMap<String, Connection>(); //Collections.synchronizedMap(new HashMap<>());
+		this.activePeerConnection = new HashMap<String, Connection>(); //Collections.synchronizedMap(new HashMap<>());
+		this.activePeerHostPort=new HashMap<String, HostPort>();
 	}
 	
 	public BlockingQueue<Message> getIncomingMessagesQueue() {
 		return incomingMessagesQueue;
 	}
 	
-	public void addConnection(Socket socket, PeerSource source)
+	public void addConnection(Socket socket, PeerSource source, HostPort peerHostPort)
 	{
 		Connection connection;
 		 
@@ -44,7 +46,9 @@ public class ConnectionManager implements NetworkObserver {
 			//message[0] = this.serverHostPort.toDoc().toJson();
 			//connection.send(Protocol.createMessage(Constants.Command.HANDSHAKE_RESPONSE, message));
 			new Thread(connection).start();
-			connectedPeers.put(connection.peer.toString(),connection);
+			activePeerConnection.put(connection.peer.toString(),connection);
+			activePeerHostPort.put(connection.peer.toString(),peerHostPort);
+			
 			
 			//GHD: After connection successfully added we need to start SyncEvents
 			//This is not the ideal way to do it, but just easy to continue in the same manner as external events
@@ -80,19 +84,15 @@ public class ConnectionManager implements NetworkObserver {
 		}
 	}
 	
-	public Document getPeerList()
+	public ArrayList<Document> getPeerList()
 	{
-		Document peerList = new Document();
-		ArrayList<Document> peers = new ArrayList<Document>();
-		for (Connection peer: connectedPeers.values())
-		{
-			peers.add(peer.peer.toDoc());
-		}
-		peerList.append("command", Constants.Command.CONNECTION_REFUSED.toString());
-		peerList.append("message", "connection limit reached");
-		peerList.append("peers", peerList);
 		
-		return peerList;
+		ArrayList<Document> peers = new ArrayList<Document>();
+		for (HostPort peer: activePeerHostPort.values())
+		{
+			peers.add(peer.toDoc());
+		}
+		return peers;
 	}
 
 
@@ -103,9 +103,9 @@ public class ConnectionManager implements NetworkObserver {
 	
 	public void sendAllPeers(String msg) {
 		String jsonMessage = msg;
-		if(connectedPeers.size()<=0)
+		if(activePeerConnection.size()<=0)
 			log.warning("No Active connected Peers available to send message... Dropped");
-		for (Connection conn:connectedPeers.values())
+		for (Connection conn:activePeerConnection.values())
 		{
 			try{
 				log.info(String.format("Sending to %s, Message: %s",conn.peer.toString(),jsonMessage));
@@ -124,7 +124,7 @@ public class ConnectionManager implements NetworkObserver {
 	
 	public void sendToPeer(HostPort peer, String jsonMessage) {
 		//get the active connection to the specific peer
-		Connection conn=connectedPeers.get(peer.toString());
+		Connection conn=activePeerConnection.get(peer.toString());
 		if (conn!=null)
 		{
 			try{
@@ -153,7 +153,19 @@ public class ConnectionManager implements NetworkObserver {
 	@Override
 	public void connectionClosed(HostPort connectionID) {
 		try {
-			connectedPeers.remove(connectionID.toString());
+			
+			Connection failedConnection = activePeerConnection.remove(connectionID.toString());
+
+			activePeerHostPort.remove(connectionID.toString());
+			/*
+			System.out.printf("failedConnection:.in=%s|.out=%s|clientSocket=%s\n",
+					failedConnection.in,
+					failedConnection.out,
+					failedConnection.clientSocket);
+		    */
+			//if (failedConnection.in!=null) failedConnection.in.close();
+			//if (failedConnection.out!=null)failedConnection.out.close();
+			//if (failedConnection.clientSocket!= null) failedConnection.clientSocket.close();
 			log.info("Removing Peer from active connection list "+connectionID.toString());
 		}
 		catch(Exception e) {

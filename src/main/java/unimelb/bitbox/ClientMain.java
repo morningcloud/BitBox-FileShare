@@ -130,8 +130,9 @@ public class ClientMain {
 				        		log.warning(this.getName()+ ":"+"Cient Input and Output buffers Successfully Initiated");	
 				        		log.warning(this.getName()+ ":"+"Client Sending Handshake_Request");
 				        		String hsr = Protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST,
-				        				socket.getLocalSocketAddress().toString().split(":"));
-								 out.write(hsr);
+				        				null);
+								System.out.println("Client.hsr="+hsr); 
+				        		out.write(hsr);
 								 out.flush();								 
 				        					        		
 				        		log.warning(this.getName()+ ":"+"Client Sent Handshake_Request");
@@ -151,7 +152,7 @@ public class ClientMain {
 				        			System.out.println("BitBox connected to " + hostPort.getString("host") +
 				        					" at port " + hostPort.getLong("port") + " for asynchronous communication" );
 				        			
-				        			connectionManager.addConnection(socket, PeerSource.CLIENT);
+				        			connectionManager.addConnection(socket, PeerSource.CLIENT, new HostPort(pHostPort.host,pHostPort.port));
 				        		}else {
 				        				
 				        				System.out.println("message invalid"); 
@@ -185,8 +186,12 @@ public class ClientMain {
 		}
 		
 		private void BFSNextPeer() {
+			System.out.println("TE: Queue size="+peer.getGlobalBFSQueue().size());
 			if(!peer.getGlobalBFSQueue().isEmpty())
-				new PeerRunnable((HostPort) peer.getGlobalBFSQueue(),this.peer);
+			{
+				PeerRunnable p1 = new PeerRunnable((HostPort) peer.getGlobalBFSQueue().poll(),this.peer);		
+	    		p1.start();
+			}
 			else {
 				log.severe(this.getName()+" : "+"Thread has failed to find any peer to connect");
 				closeSocket(out,in,socket);

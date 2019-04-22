@@ -60,38 +60,49 @@ public class Connection implements Runnable {
 		{
 			while (running)
 			{
-				if (this.outBuffer!=null) {
-					log.info("outBuffer content to send: "+outBuffer);
-    				out.write(outBuffer);
-    				//GHD: Clear buffer string after writing the related message to socket
-    				out.flush();
-    				outBuffer = null;
-				}
-				String inBuffer=receive();
-				if (inBuffer!=null)
+				if (!this.clientSocket.isClosed() & this.clientSocket.isConnected())
 				{
-					try {
-						log.info("inBuffer content received: "+inBuffer);
-						networkObserver.messageReceived(peer, inBuffer); //add to inQueue that is used by Event Processor
-					//this.connectionManager.enqueueMessage(inBuffer);
+					if (this.outBuffer!=null) {
+						log.info("outBuffer content to send: "+outBuffer);
+	    				out.write(outBuffer);
+	    				//GHD: Clear buffer string after writing the related message to socket
+	    				out.flush();
+	    				outBuffer = null;
 					}
-					catch(Exception e) {
-						log.severe("exception in message receive "+e.getMessage());
-						e.printStackTrace();
+					
+					String inBuffer=receive();
+					if (inBuffer!=null)
+					{
+						try {
+							log.info("inBuffer content received: "+inBuffer);
+							networkObserver.messageReceived(peer, inBuffer); //add to inQueue that is used by Event Processor
+						//this.connectionManager.enqueueMessage(inBuffer);
+						}
+						catch(Exception e) {
+							log.severe("exception in message receive "+e.getMessage());
+							e.printStackTrace();
+						}
 					}
+
+					Thread.sleep(Constants.BITBOX_THREAD_SLEEP_TIME);
 				}
-				//GHD: Commented as this would be expected
-				//else
-				//	System.out.println("In buffer is null");
-				
-				Thread.sleep(Constants.BITBOX_THREAD_SLEEP_TIME);
+				else
+				{
+					this.networkObserver.connectionClosed(peer);
+					this.running = false;
+					if (this.clientSocket!=null) this.clientSocket.close();
+					if (in != null)in.close();
+					if (out!= null)out.close();
+				}
 			}
 		}
+		
 		
 		catch (Exception e)
 		{
 			//TODO should raise connection close event to the connection manager to remove this from the list
-			networkObserver.connectionClosed(peer);
+			//networkObserver.connectionClosed(peer);
+			
 			//TODO close the socket and cleanup
 			
 			e.printStackTrace();
@@ -120,6 +131,11 @@ public class Connection implements Runnable {
 		{
 			inBuffer = this.in.readLine();
 		}
+		catch (SocketException e)
+		{
+			networkObserver.connectionClosed(peer);
+			this.running = false;
+		}
 		catch(SocketTimeoutException ex)
 		{
 			//Do nothing, this is expected if no message arrived within the socket timeout set
@@ -128,6 +144,7 @@ public class Connection implements Runnable {
 		{
 			e.printStackTrace();
 		}
+		
 		return inBuffer;
 	}
 	

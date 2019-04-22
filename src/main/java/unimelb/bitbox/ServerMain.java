@@ -59,47 +59,51 @@ public class ServerMain implements Runnable {
 				/**
 				 * The following block validates the HANDSHAKE_REQUEST and checks the server's capacity.
 				 */
-				try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(),"UTF8"));
-					 BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(),"UTF8"));)
+				BufferedReader in;
+				BufferedWriter out; 
+				try 
 				{
+					
+					in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(),"UTF8"));
+					out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(),"UTF8"));
 					Document response;
 					Document handshakeMsg = Document.parse(in.readLine());
 					try
 					{
-						System.out.println("TE: validating received msg: "+handshakeMsg.toJson());
 						//Validates the HANDSHAKE_REQUEST and throws exception if invalid.
 						if (Protocol.validate(handshakeMsg))
 						{
-							System.out.println("TE: message is valid");
 							//If HANDSHAKE_REQUEST is valid but the server is at it's maximum capacity
 							//a CONNECTION_REFUSED message is sent and the connection is closed.
-							if (connectionManager.connectedPeers.size()>=connectionManager.MAX_NO_OF_CONNECTION)
+							//TO-DO check only on the incoming connections; type Server.
+							if (connectionManager.activePeerConnection.size()>=connectionManager.MAX_NO_OF_CONNECTION)
 							{
-								System.out.println("TE: message is valid, but max reached");  
 								response = new Document();
 								response.append("command", "CONNECTION_REFUSED");
 								response.append("message", "connection limit reached");
 								response.append("peers", connectionManager.getPeerList());										  ;
-								out.write(response.toJson());
+								out.write(response.toJson()+"\n");
 								out.flush();
+								HostPort connectingPeer = new HostPort((Document)handshakeMsg.get("hostPort"));
+								log.info(String.format("Connection from %s refused.\n Message sent: %s\n",connectingPeer.toString(),response.toJson()));
 								clientSocket.close();
+								
 							}
 							//if the HANDSHAKE_REQUEST is valid and the server has capacity, the connection is
 							//added to ConnectionManager, and a HANDSHAKE_RESPONSE message is sent to the connecting peer.
 							else
 							{
-								System.out.println("TE: message is valid, all good adding this connection");  
-								this.connectionManager.addConnection(clientSocket, PeerSource.SERVER);
-								log.info(String.format("Connected to: %s, total number of established connections: %s\n",
-										clientSocket.getInetAddress().getHostName(),
-										this.connectionManager.connectedPeers.size()
-										));
 								response = new Document();
 								response.append("command", "HANDSHAKE_RESPONSE");
 								response.append("hostPort",this.serverHostPort.toDoc());
-								out.write(response.toJson());
+								out.write(response.toJson()+"\n");
 								out.flush();
-								this.connectionManager.addConnection(clientSocket, PeerSource.SERVER);
+								HostPort connectingPeer = new HostPort((Document)handshakeMsg.get("hostPort"));
+								this.connectionManager.addConnection(clientSocket, PeerSource.SERVER,connectingPeer);
+								log.info(String.format("Connected to: %s, total number of established connections: %s\n",
+										clientSocket.getInetAddress().getHostName(),
+										this.connectionManager.activePeerConnection.size()
+										));
 							}
 						}
 					}
@@ -107,7 +111,6 @@ public class ServerMain implements Runnable {
 					//If HANDSHAKE_REQUEST is invalid, respond with INVALID_PROTOCOL and close connection
 					catch (InvalidCommandException e)
 					{
-						System.out.println("TE: Captiromg InvalidCommand exception");  
 						response = new Document();
 						response.append("command", "INVALID_PROTOCOL");
 						response.append("message", e.getMessage());

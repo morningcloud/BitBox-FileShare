@@ -7,6 +7,7 @@ import unimelb.bitbox.util.Constants;
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.HostPort;
+import java.util.ArrayList;
 
 import unimelb.bitbox.Err.*;
 public class Protocol 
@@ -75,6 +76,7 @@ public class Protocol
 				 Configuration.getConfiguration();
 				 HostPort serverHostPort = new HostPort(Configuration.getConfigurationValue("advertisedName"),
 						 Integer.parseInt(Configuration.getConfigurationValue("port")));
+				 
 				 response.append("command", "HANDSHAKE_REQUEST");								 
 				 response.append("hostPort", serverHostPort.toDoc());
 				 break;
@@ -150,14 +152,15 @@ public class Protocol
 	{
 		try {				
 				boolean result = true;
-				if (d.get("command").equals("HANDSHAKE_REFUSED"))
+				if (d.get("command").equals("CONNECTION_REFUSED"))
 				{
-					Document hostPort = (Document) d.get("hostPort");
-					if ((hostPort.getString("host").equals(null))|!((hostPort.getLong("port"))>=1023)){
+					System.out.println();
+					ArrayList<Document> hostPort = (ArrayList<Document>) d.get("peers");
+					//if ((hostPort.getString("host").equals(null))|!((hostPort.getLong("port"))>=1023)){
 					
-						result = false;
+						//result = false;
 						
-					}
+				//	}
 				}
 				else {
 				
