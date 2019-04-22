@@ -5,7 +5,10 @@ package unimelb.bitbox;
 
 import unimelb.bitbox.util.Constants;
 import unimelb.bitbox.util.Document;
+import unimelb.bitbox.util.Configuration;
+import unimelb.bitbox.util.HostPort;
 
+import unimelb.bitbox.Err.*;
 public class Protocol 
 {
 	
@@ -26,18 +29,6 @@ public class Protocol
 	 * @author Tarek Elbeik
 	 *
 	 */
-	public enum EVENT
-	{
-		FILE_CREATE_REQUEST,
-		FILE_DELETE_REQUEST,
-		FILE_BYTES_REQUEST,
-		FILE_MODIFY_REQUEST,
-		DIRECTORY_CREATE_REQUEST,
-		DIRECTORY_DELETE_REQUEST	
-	}
-	
-	//not required as all enums are implicitly static
-	//Constants constants = new Constants();
 	
 	
 	public static String createRequest(Constants.Command requestType)
@@ -81,14 +72,11 @@ public class Protocol
 			
 			case HANDSHAKE_REQUEST:
 			{	
-				 response.append("command",messageType.toString());
-				 String hostAddress = args[0].substring(1);				 
-				 Document subMessage = new Document();							 
-				 subMessage.append("host", hostAddress); 
-				 subMessage.append("port", Long.parseLong(args[1])); 				 
-				 response.append("hostPort", subMessage);	
+				 Configuration.getConfiguration();
+				 HostPort serverHostPort = new HostPort(Configuration.getConfigurationValue("advertisedName"),
+						 Integer.parseInt(Configuration.getConfigurationValue("port")));
 				 response.append("command", "HANDSHAKE_REQUEST");								 
-				 System.out.println("Document Generated" + response.toJson());
+				 response.append("hostPort", serverHostPort.toDoc());
 				 break;
 			}
 			default: 
@@ -107,24 +95,30 @@ public class Protocol
 	 * @param d
 	 * @return
 	 */
-	public static boolean validate(Document d)
+	public static boolean validate(Document d) throws InvalidCommandException
 	{
-		boolean result = true;
+		boolean result = false;
+		Configuration.getConfiguration();
+		
+		
 		//One validation scenario, more need to be added.
-		if (d.get("command").equals("HANDSHAKE_REQUEST"))
+		String command = d.getString("command");
+		String msg;
+		if (command.equals("HANDSHAKE_REQUEST"))
 		{
 			Document hostPort = (Document) d.get("hostPort");
-			if ((hostPort.getString("host").equals(null))|!((hostPort.getLong("port"))>=1023))
+			if ((hostPort.getString("host").equals(null)))
 			{
-				result = false;
-				
+				msg = "host is null";
+				throw new InvalidCommandException(msg);
 			}
+			result = true;
 		}
-		
 		else
 		{
 			result = false;
 		}
+		
 		return result;
 	}
 	

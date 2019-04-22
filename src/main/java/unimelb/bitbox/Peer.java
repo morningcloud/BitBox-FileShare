@@ -62,18 +62,22 @@ public class Peer
         //Start server component thread
         Thread serverThread=new Thread(new ServerMain(connectionManager));
         serverThread.start();
-    
-    	//new ServerMain(connectionManager).run();
+    	
 
+
+        //TE: Commenting this side, I want just a server.
+        /*
         //Start client component thread
         Thread clientThread=new Thread(new Runnable() {
 								        	public void run() {
 									        		new ClientMain(connectionManager);
 								        	}});
         clientThread.start();
-        
+        */
 
-		//start the event processor
+		
+        /*
+        //start the event processor
         EventProcessor eventProcess= new EventProcessor(connectionManager);
         Thread eventProcessor = new Thread(eventProcess);
         eventProcessor.start();
@@ -94,7 +98,7 @@ public class Peer
 										}
         							}});
         syncThread.start();
-        
+        */
     }
 		
    

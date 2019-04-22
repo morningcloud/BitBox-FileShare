@@ -39,10 +39,10 @@ public class ConnectionManager implements NetworkObserver {
 			
 			//TODO GHD: To discuss with Tariq: commented the validation that should ideally be done at the server side
 			//     as otherwise this is not maintain the list of active connections from the client end!
-			String[] message = new String[1];
+			//String[] message = new String[1];
 			
-			message[0] = this.serverHostPort.toDoc().toJson();
-			connection.send(Protocol.createMessage(Constants.Command.HANDSHAKE_RESPONSE, message));
+			//message[0] = this.serverHostPort.toDoc().toJson();
+			//connection.send(Protocol.createMessage(Constants.Command.HANDSHAKE_RESPONSE, message));
 			new Thread(connection).start();
 			connectedPeers.put(connection.peer.toString(),connection);
 			

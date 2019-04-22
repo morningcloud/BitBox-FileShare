@@ -60,15 +60,15 @@ public class Connection implements Runnable {
 		{
 			while (running)
 			{
-				if (this.outBuffer!="") {
+				if (this.outBuffer!=null) {
 					log.info("outBuffer content to send: "+outBuffer);
     				out.write(outBuffer);
     				//GHD: Clear buffer string after writing the related message to socket
     				out.flush();
-    				outBuffer = "";
+    				outBuffer = null;
 				}
 				String inBuffer=receive();
-				if (!(inBuffer==null))
+				if (inBuffer!=null)
 				{
 					try {
 						log.info("inBuffer content received: "+inBuffer);
@@ -103,34 +103,8 @@ public class Connection implements Runnable {
 	 * @param message
 	 */
 	
-	public boolean isHSRReceived()
-	{
-		boolean status = false;
-		try
-		{
-			
-			Document handshakeRequest = Document.parse(in.readLine());
-			if (Protocol.validate(handshakeRequest))
-			{
-				status = true;
-				Document host = (Document) handshakeRequest.get("hostPort");
-				peer = new HostPort(host);
-			}
-				
-			else
-				status = false;
-		}
-		catch (SocketTimeoutException e)
-		{
-			log.warning("isHSRReceived timeout");
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-		}
-		
-		return status;
-	}
+	
+	
 	
 	//GHD: maybe sunchronized is required here
 	public /*synchronized*/ void send(String message)
