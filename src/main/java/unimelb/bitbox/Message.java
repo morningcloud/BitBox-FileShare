@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 import org.apache.commons.codec.binary.Base64;
 
 import unimelb.bitbox.Err.InvalidCommandException;
+import unimelb.bitbox.Err.JsonParserException;
 import unimelb.bitbox.util.Constants.Command;
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.HostPort;
@@ -37,7 +38,7 @@ public class Message {
 
 	private static Logger log = Logger.getLogger(Message.class.getName());
 	
-	public Message(String jsonMessage) throws Exception {
+	public Message(String jsonMessage) throws JsonParserException, InvalidCommandException {
 		//parse jsonMessage
 		this(Document.parse(jsonMessage));
 	}
@@ -68,31 +69,26 @@ public class Message {
 		this.peersList = msg.getPeersList();
 	}
 	
-	public Message(Document doc) throws Exception {
+	public Message(Document doc) throws JsonParserException, InvalidCommandException {// throws Exception {
 		//Validate message
 		document = doc;
+		//this means that document received is empty or couldn't be parsed to a valid json object
+		if (document.toJson().equals("{}"))
+			throw new JsonParserException("invalid json message received");
+		
 		String cmd = doc.getString("command");
 		if (cmd == null || cmd.isEmpty())
-				throw new InvalidCommandException("command cannot be empty.");
+				throw new InvalidCommandException("command cannot be empty");
 		
 		command = Command.fromString(cmd);
 		if (command == null)
-			throw new InvalidCommandException("Invalid command.");
+			throw new InvalidCommandException("invalid/unknown command");
 		
 		parseMessage(command,doc);
 	}
 	
-	private void parseMessage(Command cmd, Document doc) {
+	private void parseMessage(Command cmd, Document doc) throws InvalidCommandException {
 		
-		//TODO Read and validate tags depending on the incoming command
-		switch(cmd) {
-		case DIRECTORY_CREATE_REQUEST:
-			//TO DO
-		case DIRECTORY_CREATE_RESPONSE:
-			
-		default:
-				
-		}
 
 		//Read relevant content based on the command
 		message = doc.getString("message");
@@ -124,6 +120,58 @@ public class Message {
 			for (Document pd:peerDoc) {
 				peersList.add(new  HostPort(pd));
 			}
+		}
+
+		try {
+			boolean isElementMissing=false;
+			//TODO Read and validate tags existence depending on the incoming command
+			switch(cmd) {
+			case DIRECTORY_CREATE_REQUEST:
+			case DIRECTORY_DELETE_REQUEST:
+				if(pathName.isEmpty())
+					isElementMissing=true;
+				break;
+			case FILE_CREATE_REQUEST:
+			case FILE_MODIFY_REQUEST:
+			case FILE_DELETE_REQUEST:
+				if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty())
+					isElementMissing=true;
+				break;
+			case FILE_BYTES_REQUEST:
+				if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty() || length==0)
+					isElementMissing=true;
+				break;
+				//TO DO
+			case DIRECTORY_CREATE_RESPONSE:
+			case DIRECTORY_DELETE_RESPONSE:
+				if(pathName.isEmpty() || message.isEmpty())
+					isElementMissing=true;
+				break;
+			case FILE_CREATE_RESPONSE:
+			case FILE_MODIFY_RESPONSE:
+			case FILE_DELETE_RESPONSE:
+				if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty()|| message.isEmpty())
+					isElementMissing=true;
+				break;
+			case FILE_BYTES_RESPONSE:
+				if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty() || length==0|| message.isEmpty())
+					isElementMissing=true;
+				
+				break;
+			default:
+					break;
+			}
+			if(isElementMissing)
+				throw new InvalidCommandException("");
+		}
+		catch (InvalidCommandException e) {
+			//this need to be thrown as is
+			throw e;
+		}
+		catch(Exception e) {
+			log.severe("Exception validating message content");
+			e.printStackTrace();
+			throw new InvalidCommandException("message validation failed. missing key.");
 		}
 	}
 	

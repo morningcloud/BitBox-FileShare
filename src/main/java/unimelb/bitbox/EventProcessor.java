@@ -333,6 +333,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 						message.setMessage("directory created.");
 					}
 					else {
+						log.severe("fileSystemManager.makeDirectory returned false!!");
 						message.setSuccessStatus(false);
 						message.setMessage("there was a problem creating the directory");
 					}
@@ -399,6 +400,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 						message.setMessage("directory deleted");
 					}
 					else {
+						log.severe("fileSystemManager.deleteDirectory returned false!!");
 						message.setSuccessStatus(false);
 						message.setMessage("there was a problem deleting the directory");
 					}
@@ -531,6 +533,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 							message.setMessage("file deleted");
 						}
 						else {
+							log.severe("fileSystemManager.deleteFile returned false!!");
 							message.setSuccessStatus(false);
 							message.setMessage("there was a problem deleting the file");
 						}
@@ -600,6 +603,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 							}
 						}
 						else {
+							log.severe("fileSystemManager.modifyFileLoader returned false!!");
 							message.setSuccessStatus(false);
 							message.setMessage("there was a problem modifying the file");
 						}
@@ -609,12 +613,14 @@ public class EventProcessor implements FileSystemObserver, Runnable
 						log.severe("IO error: "+e.getMessage());
 						message.setSuccessStatus(false);
 						message.setMessage("there was a problem modifying the file");
+						e.printStackTrace();
 					}
 					catch (NoSuchAlgorithmException e)
 					{
 						log.severe("No such algorithm: "+e.getMessage());
 						message.setSuccessStatus(false);
 						message.setMessage("there was a problem modifying the file");
+						e.printStackTrace();
 					}
 					catch(Exception e) {
 						log.severe("Exception in file modify, rejecting request.");
@@ -685,6 +691,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 						}
 					}
 					else {
+						log.severe("fileSystemManager.writeFile returned false!!");
 						message.setSuccessStatus(false);
 						message.setMessage("unsuccessful write - no such file with that content");
 						cancelfile=true;
@@ -696,6 +703,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 					message.setSuccessStatus(false);
 					message.setMessage("there was a problem writing the file");
 					cancelfile=true;
+					e.printStackTrace();
 				}
 				catch (NoSuchAlgorithmException e)
 				{
@@ -703,6 +711,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 					message.setSuccessStatus(false);
 					message.setMessage("there was a problem writing the file");
 					cancelfile=true;
+					e.printStackTrace();
 				}
 				catch(Exception e) {
 					log.severe("Exception in file write, rejecting request.");
@@ -710,6 +719,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 					message.setSuccessStatus(false);
 					message.setMessage("there was a problem write the file");
 					cancelfile=true;
+					e.printStackTrace();
 				}
 			}else {
 				message.setSuccessStatus(false);
@@ -759,12 +769,14 @@ public class EventProcessor implements FileSystemObserver, Runnable
 					log.severe("IO error: "+e.getMessage());
 					message.setSuccessStatus(false);
 					message.setMessage("there was a problem reading the file");
+					e.printStackTrace();
 				}
 				catch (NoSuchAlgorithmException e)
 				{
 					log.severe("No such algorithm: "+e.getMessage());
 					message.setSuccessStatus(false);
 					message.setMessage("there was a problem reading the file");
+					e.printStackTrace();
 				}
 				catch(Exception e) {
 					log.severe("Exception in file read, rejecting request.");

@@ -4,7 +4,11 @@ import java.net.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
+
+import unimelb.bitbox.Err.InvalidCommandException;
+import unimelb.bitbox.Err.JsonParserException;
 import unimelb.bitbox.util.*;
+import unimelb.bitbox.util.Constants.Command;
 import unimelb.bitbox.util.Constants.PeerSource;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
@@ -180,14 +184,29 @@ public class ConnectionManager implements NetworkObserver {
 	@Override
 	public void messageReceived(HostPort connectionID, String message) {
 		Message inMsg;
-		try {
-			inMsg = new Message(message);
-			inMsg.setFromAddress(connectionID);
-			incomingMessagesQueue.put(inMsg);
-		} catch (Exception e) {
-			// TODO GHD Maybe add invalid protocol response?
-			e.printStackTrace();
-		}
+			try {
+				inMsg = new Message(message);
+				inMsg.setFromAddress(connectionID);
+				incomingMessagesQueue.put(inMsg);
+			}
+			//TODO GHD should we close the connection incase of message parsing errors??
+			catch(JsonParserException e) {
+				//Error during message parsing, return invalid protocol to sender
+				String[] msg = new String[1];
+				msg[0] = e.getMessage();
+				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg));
+			} 
+			catch (InvalidCommandException e) {
+				//Error during message parsing, return invalid protocol to sender
+				String[] msg = new String[1];
+				msg[0] = e.getMessage();
+				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg));
+				log.severe("Message parsing failed "+e.getMessage());
+			} 
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+			
 	}
 		
 }
