@@ -192,6 +192,7 @@ public class ConnectionManager implements NetworkObserver {
 			//TODO GHD should we close the connection incase of message parsing errors??
 			catch(JsonParserException e) {
 				//Error during message parsing, return invalid protocol to sender
+				System.out.println("TE: messageReceived.catch.JsonParserException:"+message);
 				String[] msg = new String[1];
 				msg[0] = e.getMessage();
 				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg));
@@ -200,6 +201,7 @@ public class ConnectionManager implements NetworkObserver {
 				//Error during message parsing, return invalid protocol to sender
 				String[] msg = new String[1];
 				msg[0] = e.getMessage();
+				System.out.println("TE: messageReceived.catch.InvalidCommandException:"+message);
 				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg));
 				log.severe("Message parsing failed "+e.getMessage());
 			} 

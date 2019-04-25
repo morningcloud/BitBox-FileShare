@@ -134,11 +134,16 @@ public class Message {
 			case FILE_CREATE_REQUEST:
 			case FILE_MODIFY_REQUEST:
 			case FILE_DELETE_REQUEST:
-				if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty())
+				
+				//TO-DO TE: Commented this line as it caused 0 size file creation throw invalid command exception
+				//if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty())
+				if(md5.isEmpty() || lastModified==0 || pathName.isEmpty())	
 					isElementMissing=true;
 				break;
 			case FILE_BYTES_REQUEST:
-				if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty() || length==0)
+				//TO-DO TE: Commented this line as it caused 0 size file creation throw invalid command exception
+				//if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty() || length==0)
+				if(md5.isEmpty() || lastModified==0 || pathName.isEmpty()|| message.isEmpty())
 					isElementMissing=true;
 				break;
 				//TO DO
@@ -150,11 +155,15 @@ public class Message {
 			case FILE_CREATE_RESPONSE:
 			case FILE_MODIFY_RESPONSE:
 			case FILE_DELETE_RESPONSE:
-				if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty()|| message.isEmpty())
+				//TO-DO TE: Commented this line as it caused 0 size file creation throw invalid command exception
+				//if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty()|| message.isEmpty())
+				if(md5.isEmpty() || lastModified==0 || pathName.isEmpty()|| message.isEmpty())
 					isElementMissing=true;
 				break;
 			case FILE_BYTES_RESPONSE:
-				if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty() || length==0|| message.isEmpty())
+				//TO-DO TE: Commented this line as it caused 0 size file creation throw invalid command exception
+				//if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty() || length==0|| message.isEmpty())
+				if(md5.isEmpty() || lastModified==0 || pathName.isEmpty()|| message.isEmpty())
 					isElementMissing=true;
 				
 				break;
@@ -162,7 +171,7 @@ public class Message {
 					break;
 			}
 			if(isElementMissing)
-				throw new InvalidCommandException("");
+				throw new InvalidCommandException("an element is missing from JSON message");
 		}
 		catch (InvalidCommandException e) {
 			//this need to be thrown as is

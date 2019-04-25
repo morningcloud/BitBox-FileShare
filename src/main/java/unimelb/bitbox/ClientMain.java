@@ -1,6 +1,7 @@
 package unimelb.bitbox;
 
 import java.net.ConnectException;
+import java.net.UnknownHostException;
 import java.net.Socket;
 import java.io.*;
 import java.util.ArrayList;
@@ -95,7 +96,13 @@ public class ClientMain {
 	            				log.warning(this.getName() + socket.getLocalSocketAddress());
 
 	            			}
-	    				}catch (ConnectException e){// Failed to connect to socket 
+	    				}
+	    				catch (UnknownHostException e)
+	    				{
+	    					log.warning(this.getName()+ ":"+"unknown host " 
+	    	    					+ pHostPort.host + ":" + pHostPort.port);
+	    				}
+	    				catch (ConnectException e){// Failed to connect to socket 
 	    					log.severe(this.getName()+ ":"+"Connection Exception in attempt to " 
 	    							+ pHostPort.host + ":" + pHostPort.port + " failed.");    					    					
 	    				}catch (NullPointerException m){

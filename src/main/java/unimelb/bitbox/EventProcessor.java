@@ -111,12 +111,6 @@ public class EventProcessor implements FileSystemObserver, Runnable
 		 * 3) delete New file event --> deleting the temporary file.
 		 * This does not happen with files copied
 		 */
-		System.out.printf("Event.toString: %s\n",fileSystemEvent.toString());
-		System.out.printf("Event.event: %s\n",fileSystemEvent.event);
-		System.out.printf("Event.name: %s\n",fileSystemEvent.name);
-		System.out.printf("Event.path: %s\n",fileSystemEvent.path);
-		System.out.printf("Event.pathName: %s\n",fileSystemEvent.pathName);
-		
 		
 		//Handling all possible file system manager events.
 		Message msg = constructEventMessage(fileSystemEvent);
@@ -162,16 +156,6 @@ public class EventProcessor implements FileSystemObserver, Runnable
 		Message msg = null;
 		switch(fileSystemEvent.event) {
 			case FILE_CREATE:
-				c = Calendar.getInstance();
-				c.setTimeInMillis(fileSystemEvent.fileDescriptor.lastModified);
-				System.out.println(String.format("Event.fileDescriptor:\n"
-						+		  "---------------------\n"
-						+ "\tlast modified=%s\n"
-						+ "\tmd5=%s\n"
-						+ "\tsize=%s\n"
-						,c.getTime()
-						,fileSystemEvent.fileDescriptor.md5
-						,fileSystemEvent.fileDescriptor.fileSize));
 				
 				//TODO: To test full cycle... This may get updated by protocol?
 			    msg = new Message();
@@ -180,7 +164,9 @@ public class EventProcessor implements FileSystemObserver, Runnable
 				msg.setLastModified(fileSystemEvent.fileDescriptor.lastModified);
 				msg.setFileSize(fileSystemEvent.fileDescriptor.fileSize);
 				msg.setPathName(fileSystemEvent.pathName);
-				
+				System.out.println("TE: pathName="+fileSystemEvent.pathName);
+				System.out.println("TE: name="+fileSystemEvent.name);
+				System.out.println("TE: path="+fileSystemEvent.path);
 				break;
 				
 			case FILE_DELETE:
