@@ -88,7 +88,8 @@ public class Message {
 	}
 	
 	private void parseMessage(Command cmd, Document doc) throws InvalidCommandException {
-		
+
+		boolean isElementMissing=false;
 
 		//Read relevant content based on the command
 		message = doc.getString("message");
@@ -105,9 +106,14 @@ public class Message {
 		if(doc.containsKey("fileDescriptor"))
 		{
 			Document fileDescriptor = (Document) doc.get("fileDescriptor");
-			md5 = fileDescriptor.getString("md5");
-			fileSize = fileDescriptor.getLong("fileSize");
-			lastModified = fileDescriptor.getLong("lastModified");
+			
+			//All below elements are mandatory for all messages if fileDescriptor exists
+			if (!fileDescriptor.containsKey("md5") || !fileDescriptor.containsKey("fileSize") || !fileDescriptor.containsKey("lastModified"))
+				throw new InvalidCommandException("message validation failed. missing key in "+doc.toJson());
+			else
+				md5 = fileDescriptor.getString("md5");
+				fileSize = fileDescriptor.getLong("fileSize");
+				lastModified = fileDescriptor.getLong("lastModified");
 		}
 		
 		if(doc.containsKey("hostPort")) {
@@ -123,8 +129,6 @@ public class Message {
 		}
 
 		try {
-			boolean isElementMissing=false;
-			//TODO Read and validate tags existence depending on the incoming command
 			switch(cmd) {
 			case DIRECTORY_CREATE_REQUEST:
 			case DIRECTORY_DELETE_REQUEST:
@@ -134,11 +138,11 @@ public class Message {
 			case FILE_CREATE_REQUEST:
 			case FILE_MODIFY_REQUEST:
 			case FILE_DELETE_REQUEST:
-				if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty())
+				if(md5.isEmpty() || pathName.isEmpty() || !doc.containsKey("fileDescriptor"))
 					isElementMissing=true;
 				break;
 			case FILE_BYTES_REQUEST:
-				if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty() || length==0)
+				if(md5.isEmpty() || pathName.isEmpty() || !doc.containsKey("length") || !doc.containsKey("fileDescriptor"))
 					isElementMissing=true;
 				break;
 				//TO DO
@@ -150,19 +154,18 @@ public class Message {
 			case FILE_CREATE_RESPONSE:
 			case FILE_MODIFY_RESPONSE:
 			case FILE_DELETE_RESPONSE:
-				if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty()|| message.isEmpty())
+				if(md5.isEmpty() || pathName.isEmpty()|| message.isEmpty())
 					isElementMissing=true;
 				break;
 			case FILE_BYTES_RESPONSE:
-				if(md5.isEmpty() || lastModified==0 || fileSize==0 || pathName.isEmpty() || length==0|| message.isEmpty())
+				if(md5.isEmpty() || pathName.isEmpty() || !doc.containsKey("length") || !doc.containsKey("fileDescriptor"))
 					isElementMissing=true;
-				
 				break;
 			default:
 					break;
 			}
 			if(isElementMissing)
-				throw new InvalidCommandException("");
+				throw new InvalidCommandException("message validation failed. missing key in "+doc.toJson());
 		}
 		catch (InvalidCommandException e) {
 			//this need to be thrown as is
