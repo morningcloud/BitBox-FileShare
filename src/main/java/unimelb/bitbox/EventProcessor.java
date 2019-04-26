@@ -144,7 +144,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 			//Handling all possible file system manager events.
 			Message msg = constructEventMessage(pathevent);
 			if (msg!=null)
-				connectionManager.sendToPeer(peer, msg);
+				connectionManager.sendToPeer(peer, msg, false);
 		}
 	}
 	
@@ -155,10 +155,10 @@ public class EventProcessor implements FileSystemObserver, Runnable
 		Calendar c;
 		Message msg = null;
 		switch(fileSystemEvent.event) {
+
 			case FILE_CREATE:
-				
-				//TODO: To test full cycle... This may get updated by protocol?
-			    msg = new Message();
+				//TODO: This may get updated by protocol?
+			  msg = new Message();
 				msg.setCommand(Command.FILE_CREATE_REQUEST);
 				msg.setMd5(fileSystemEvent.fileDescriptor.md5);
 				msg.setLastModified(fileSystemEvent.fileDescriptor.lastModified);
@@ -169,7 +169,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 				System.out.println("TE: path="+fileSystemEvent.path);
 				break;
 				
-			case FILE_DELETE:
+			case FILE_DELETE:/*
 				c = Calendar.getInstance();
 				c.setTimeInMillis(fileSystemEvent.fileDescriptor.lastModified);
 				System.out.println(String.format("Event.fileDescriptor:\n"
@@ -180,7 +180,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 						,c.getTime()
 						,fileSystemEvent.fileDescriptor.md5
 						,fileSystemEvent.fileDescriptor.fileSize));
-				
+				*/
 				msg = new Message();
 				msg.setCommand(Command.FILE_DELETE_REQUEST);
 				msg.setMd5(fileSystemEvent.fileDescriptor.md5);
@@ -190,7 +190,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 				
 				break;
 				
-			case FILE_MODIFY:
+			case FILE_MODIFY:/*
 				c = Calendar.getInstance();
 				c.setTimeInMillis(fileSystemEvent.fileDescriptor.lastModified);
 				System.out.println(String.format("Event.fileDescriptor:\n"
@@ -201,7 +201,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 						,c.getTime()
 						,fileSystemEvent.fileDescriptor.md5
 						,fileSystemEvent.fileDescriptor.fileSize));
-				
+				*/
 				msg = new Message();
 				msg.setCommand(Command.FILE_MODIFY_REQUEST);
 				msg.setMd5(fileSystemEvent.fileDescriptor.md5);
@@ -281,16 +281,22 @@ public class EventProcessor implements FileSystemObserver, Runnable
 					//No action to be done, just log drop the message
 					log.info(String.format("%s received but no action needed... Dropped.", command.name()));
 					break;
-					
+				
+				case HANDSHAKE_REQUEST:
+					//At this stage the handshake would have been established and validated already... 
+					//so this request should be rejected
+					connectionManager.sendToPeer(senderPeer, Protocol.createMessage(Command.INVALID_PROTOCOL, "was not expecting a HANDSHAKE_REQUEST".split(";")), true);
+					break;
 				case INVALID_PROTOCOL:
 					//If received here, something is wrong with one of our messages or peer have issue processing a proper message!
 					//TODO: what to do here?
+					//I think it is OK if we do nothing, as ideally they should disconnect from us once they
 					log.severe(String.format("Unexpected INVALID_PROTOCOL received from %s!", senderPeer));
 					break;
 					
 				default:
 					//construct invalid protocol message
-					connectionManager.sendToPeer(senderPeer, Protocol.createMessage(Command.INVALID_PROTOCOL, "unknown command".split(";")));
+					connectionManager.sendToPeer(senderPeer, Protocol.createMessage(Command.INVALID_PROTOCOL, "unknown command".split(";")), true);
 					break;
 			}
 
@@ -787,7 +793,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 	private void sendResponse(Message responseMessage) {
 		//GHD: After processing send the response message back to peer
 		try {
-			connectionManager.sendToPeer(responseMessage.getFromAddress(), responseMessage);
+			connectionManager.sendToPeer(responseMessage.getFromAddress(), responseMessage, false);
 		}
 		catch (Exception e) {
 			// TODO: handle exception

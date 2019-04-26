@@ -16,7 +16,7 @@ public class Connection implements Runnable {
 	//String inBuffer;
 	PeerSource peerSource;
 	//GHD: changed outBuffer to list to cater for multiple parallel send requests
-	ArrayList<String> outBuffer;
+	ArrayList<OutBuffer> outBuffer;
 	//String outBuffer;
 	Logger log;
 	HostPort peer;   
@@ -29,7 +29,7 @@ public class Connection implements Runnable {
 		{
 			this.in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(),"UTF8"));  
 			this.out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(),"UTF8"));
-			this.outBuffer = new ArrayList<String>();
+			this.outBuffer = new ArrayList<OutBuffer>();
 			this.clientSocket = clientSocket;
 			//GHD: Set socket read timeout and keep alive flags
 			this.clientSocket.setKeepAlive(true);
@@ -67,10 +67,16 @@ public class Connection implements Runnable {
 				if (!this.clientSocket.isClosed() & this.clientSocket.isConnected())
 				{
 					if (this.outBuffer.size()>0) {
-						String outString = outBuffer.remove(0);
+						OutBuffer buffer = outBuffer.remove(0);
+						String outString = buffer.outData;
 						log.info("outBuffer content to send: "+outString);
 	    				out.write(outString);
 	    				out.flush();
+	    				//If this flag is set, we should terminate the connection after sending the last message
+	    				if (buffer.terminateAfterSend)
+	    				{
+	    					closeAndClean();
+	    				}
 					}
 					
 					String inBuffer=receive();
@@ -91,11 +97,7 @@ public class Connection implements Runnable {
 				}
 				else
 				{
-					this.networkObserver.connectionClosed(peer);
-					this.running = false;
-					if (this.clientSocket!=null) this.clientSocket.close();
-					if (in != null)in.close();
-					if (out!= null)out.close();
+					closeAndClean();
 				}
 			}
 		}
@@ -112,19 +114,30 @@ public class Connection implements Runnable {
 		}
 	}
 	
+	private void closeAndClean()
+	{
+		try {
+			this.running = false;
+			this.networkObserver.connectionClosed(peer);
+			if (this.clientSocket!=null && !clientSocket.isClosed()) this.clientSocket.close();
+			if (in != null) in.close();
+			if (out!= null) out.close();
+		}catch(Exception e) {
+			
+		}
+	}
+	
 	/**
 	 * Fills connection outgoing buffer with data to be sent to 
 	 * @param message
 	 */
 	
 	
-	
-	
 	//GHD: maybe sunchronized is required here
-	public /*synchronized*/ void send(String message)
+	public /*synchronized*/ void send(String message, boolean terminateAfterSend)
 	{
 		log.info(String.format("In connection.send, Peer: %s message: %s", peer.toString(),message));
-		this.outBuffer.add(message);
+		this.outBuffer.add(new OutBuffer(message, terminateAfterSend));
 	}
 	
 	public String receive()
@@ -151,17 +164,14 @@ public class Connection implements Runnable {
 		return inBuffer;
 	}
 	
-	public void close()
+	class OutBuffer
 	{
-		try
-		{
-			if (this.clientSocket!=null)this.clientSocket.close();
+		String outData;
+		boolean terminateAfterSend = false;
+		public OutBuffer(String data, boolean terminateAfter) {
+			this.outData = data;
+			this.terminateAfterSend = terminateAfter;
 		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-		}
-	
 	}
 
 }

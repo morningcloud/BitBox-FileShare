@@ -113,7 +113,7 @@ public class ConnectionManager implements NetworkObserver {
 		{
 			try{
 				log.info(String.format("Sending to %s, Message: %s",conn.peer.toString(),jsonMessage));
-				conn.send(jsonMessage);
+				conn.send(jsonMessage, false);
 			}
 			catch(Exception e){
 				log.warning("Unable to send message to peer "+conn.peer.toString()+" message: "+jsonMessage);
@@ -121,19 +121,19 @@ public class ConnectionManager implements NetworkObserver {
 		}
 	}
 	
-	public void sendToPeer(HostPort peer, Message msg) {
+	public void sendToPeer(HostPort peer, Message msg, boolean terminateAfter) {
 		String jsonMessage = msg.getJsonMessage();
-		sendToPeer(peer, jsonMessage);
+		sendToPeer(peer, jsonMessage, terminateAfter);
 	}
 	
-	public void sendToPeer(HostPort peer, String jsonMessage) {
+	public void sendToPeer(HostPort peer, String jsonMessage, boolean terminateAfter) {
 		//get the active connection to the specific peer
 		Connection conn=activePeerConnection.get(peer.toString());
 		if (conn!=null)
 		{
 			try{
 				log.info(String.format("Sending to %s, Message: %s",conn.peer.toString(),jsonMessage));
-				conn.send(jsonMessage);
+				conn.send(jsonMessage, terminateAfter);
 			}
 			catch(Exception e){
 				log.warning("Unable to send message to peer "+conn.peer.toString()+" message: "+jsonMessage);
@@ -157,8 +157,10 @@ public class ConnectionManager implements NetworkObserver {
 	@Override
 	public void connectionClosed(HostPort connectionID) {
 		try {
+
+			log.info("Removing Peer from active connection list "+connectionID.toString());
 			
-			Connection failedConnection = activePeerConnection.remove(connectionID.toString());
+			activePeerConnection.remove(connectionID.toString());
 
 			activePeerHostPort.remove(connectionID.toString());
 			/*
@@ -170,7 +172,6 @@ public class ConnectionManager implements NetworkObserver {
 			//if (failedConnection.in!=null) failedConnection.in.close();
 			//if (failedConnection.out!=null)failedConnection.out.close();
 			//if (failedConnection.clientSocket!= null) failedConnection.clientSocket.close();
-			log.info("Removing Peer from active connection list "+connectionID.toString());
 		}
 		catch(Exception e) {
 			e.printStackTrace();
@@ -188,6 +189,8 @@ public class ConnectionManager implements NetworkObserver {
 				inMsg = new Message(message);
 				inMsg.setFromAddress(connectionID);
 				incomingMessagesQueue.put(inMsg);
+				if(inMsg.getCommand()==Command.INVALID_PROTOCOL)
+					log.warning("Got INVALID_PROTOCOL from "+connectionID.toString());
 			}
 			//TODO GHD should we close the connection incase of message parsing errors??
 			catch(JsonParserException e) {
@@ -195,14 +198,14 @@ public class ConnectionManager implements NetworkObserver {
 				System.out.println("TE: messageReceived.catch.JsonParserException:"+message);
 				String[] msg = new String[1];
 				msg[0] = e.getMessage();
-				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg));
+				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg), true);
 			} 
 			catch (InvalidCommandException e) {
 				//Error during message parsing, return invalid protocol to sender
 				String[] msg = new String[1];
 				msg[0] = e.getMessage();
 				System.out.println("TE: messageReceived.catch.InvalidCommandException:"+message);
-				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg));
+				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg), true);
 				log.severe("Message parsing failed "+e.getMessage());
 			} 
 			catch (Exception e) {
