@@ -108,8 +108,12 @@ public class Message {
 			Document fileDescriptor = (Document) doc.get("fileDescriptor");
 			
 			//All below elements are mandatory for all messages if fileDescriptor exists
-			if (!fileDescriptor.containsKey("md5") || !fileDescriptor.containsKey("fileSize") || !fileDescriptor.containsKey("lastModified"))
-				throw new InvalidCommandException("message validation failed. missing key in "+doc.toJson());
+			if (!fileDescriptor.containsKey("md5"))
+				throw new InvalidCommandException(cmd.name()+" message validation failed. missing key [md5].");
+			else if (!fileDescriptor.containsKey("fileSize"))
+				throw new InvalidCommandException(cmd.name()+" message validation failed. missing key [fileSize].");
+			else if (!fileDescriptor.containsKey("lastModified"))
+				throw new InvalidCommandException(cmd.name()+" message validation failed. missing key. [lastModified]");
 			else
 				md5 = fileDescriptor.getString("md5");
 				fileSize = fileDescriptor.getLong("fileSize");
@@ -133,39 +137,39 @@ public class Message {
 			case DIRECTORY_CREATE_REQUEST:
 			case DIRECTORY_DELETE_REQUEST:
 				if(pathName.isEmpty())
-					isElementMissing=true;
+					throw new InvalidCommandException(cmd.name()+" message validation failed. missing key/value [pathName]");
 				break;
 			case FILE_CREATE_REQUEST:
 			case FILE_MODIFY_REQUEST:
 			case FILE_DELETE_REQUEST:
 				if(md5.isEmpty() || pathName.isEmpty() || !doc.containsKey("fileDescriptor"))
-					isElementMissing=true;
+					throw new InvalidCommandException(cmd.name()+" message validation failed. missing key/value");
 				break;
 			case FILE_BYTES_REQUEST:
 				if(md5.isEmpty() || pathName.isEmpty() || !doc.containsKey("length") || !doc.containsKey("fileDescriptor"))
-					isElementMissing=true;
+					throw new InvalidCommandException(cmd.name()+" message validation failed. missing key/value");
 				break;
 				//TO DO
 			case DIRECTORY_CREATE_RESPONSE:
 			case DIRECTORY_DELETE_RESPONSE:
-				if(pathName.isEmpty() || message.isEmpty())
-					isElementMissing=true;
+				if(pathName.isEmpty())
+					throw new InvalidCommandException(cmd.name()+" message validation failed. missing key/value [pathName]");
+				if(message.isEmpty())
+					throw new InvalidCommandException(cmd.name()+" message validation failed. missing key/value [message]");
 				break;
 			case FILE_CREATE_RESPONSE:
 			case FILE_MODIFY_RESPONSE:
 			case FILE_DELETE_RESPONSE:
 				if(md5.isEmpty() || pathName.isEmpty()|| message.isEmpty())
-					isElementMissing=true;
+					throw new InvalidCommandException(cmd.name()+" message validation failed. missing key/value");
 				break;
 			case FILE_BYTES_RESPONSE:
 				if(md5.isEmpty() || pathName.isEmpty() || !doc.containsKey("length") || !doc.containsKey("fileDescriptor"))
-					isElementMissing=true;
+					throw new InvalidCommandException(cmd.name()+" message validation failed. missing key/value");
 				break;
 			default:
 					break;
 			}
-			if(isElementMissing)
-				throw new InvalidCommandException("message validation failed. missing key in "+doc.toJson());
 		}
 		catch (InvalidCommandException e) {
 			//this need to be thrown as is
@@ -174,7 +178,7 @@ public class Message {
 		catch(Exception e) {
 			log.severe("Exception validating message content");
 			e.printStackTrace();
-			throw new InvalidCommandException("message validation failed. missing key.");
+			throw new InvalidCommandException(cmd.name()+" message validation failed. missing key/value.");
 		}
 	}
 	
