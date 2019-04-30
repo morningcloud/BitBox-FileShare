@@ -43,7 +43,7 @@ public class Message {
 		this(Document.parse(jsonMessage));
 	}
 	
-	//TODO: Should not have this empty constructor
+	
 	public Message() {
 		
 	}
@@ -94,7 +94,7 @@ public class Message {
 		//Read relevant content based on the command
 		message = doc.getString("message");
 		content = doc.getString("content");
-		if((content!=null) && !content.isEmpty()) {
+		if((content!=null)) { // && !content.isEmpty()) {
 			binaryData = ByteBuffer.wrap(Base64.decodeBase64(content));
 		}
 		pathName = doc.getString("pathName");
