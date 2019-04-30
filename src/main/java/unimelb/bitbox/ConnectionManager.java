@@ -192,7 +192,6 @@ public class ConnectionManager implements NetworkObserver {
 				if(inMsg.getCommand()==Command.INVALID_PROTOCOL)
 					log.warning("Got INVALID_PROTOCOL from "+connectionID.toString());
 			}
-			//TODO GHD should we close the connection incase of message parsing errors??
 			catch(JsonParserException e) {
 				//Error during message parsing, return invalid protocol to sender
 				System.out.println("TE: messageReceived.catch.JsonParserException:"+message);

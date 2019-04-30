@@ -157,7 +157,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 		switch(fileSystemEvent.event) {
 
 			case FILE_CREATE:
-				//TODO: This may get updated by protocol?
+				//This may get updated by protocol?
 			  msg = new Message();
 				msg.setCommand(Command.FILE_CREATE_REQUEST);
 				msg.setMd5(fileSystemEvent.fileDescriptor.md5);
@@ -290,7 +290,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 				case INVALID_PROTOCOL:
 					//If received here, something is wrong with one of our messages or peer have issue processing a proper message!
 					//TODO: what to do here?
-					//I think it is OK if we do nothing, as ideally they should disconnect from us once they
+					//I think it is OK if we do nothing, as ideally they should disconnect from us once they send this Invalid Protocol message
 					log.severe(String.format("Unexpected INVALID_PROTOCOL received from %s!", senderPeer));
 					break;
 					
@@ -796,8 +796,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 			connectionManager.sendToPeer(responseMessage.getFromAddress(), responseMessage, false);
 		}
 		catch (Exception e) {
-			// TODO: handle exception
-			log.severe("Error sending event process response!");
+			log.severe("Error sending event process response! Event dropped");
 			e.printStackTrace();
 		}
 	}
