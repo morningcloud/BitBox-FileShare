@@ -164,9 +164,6 @@ public class EventProcessor implements FileSystemObserver, Runnable
 				msg.setLastModified(fileSystemEvent.fileDescriptor.lastModified);
 				msg.setFileSize(fileSystemEvent.fileDescriptor.fileSize);
 				msg.setPathName(fileSystemEvent.pathName);
-				System.out.println("TE: pathName="+fileSystemEvent.pathName);
-				System.out.println("TE: name="+fileSystemEvent.name);
-				System.out.println("TE: path="+fileSystemEvent.path);
 				break;
 				
 			case FILE_DELETE:/*

@@ -2,12 +2,14 @@ package unimelb.bitbox;
 
 import java.net.ConnectException;
 import java.net.UnknownHostException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.LinkedBlockingQueue;
+//import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
 import unimelb.bitbox.util.Configuration;
@@ -21,7 +23,9 @@ public class ClientMain {
 	private Queue<HostPort> globalBFSQueue; 
 	public ConnectionManager connectionManager;
 	
-    public static void main(String[] args) {
+    //TODO I'm commenting this whole section, it's never used.
+	/*
+	public static void main(String[] args) {
     	//For Testing
     	LinkedBlockingQueue<Message> incomingMessagesQ = new LinkedBlockingQueue<>();
 		String serverName = Configuration.getConfigurationValue("advertisedName");
@@ -29,9 +33,10 @@ public class ClientMain {
     	HostPort serverHostPort = new HostPort(serverName, serverPort);
     	
     	ConnectionManager connectionManager = new ConnectionManager(5, serverHostPort, incomingMessagesQ);
-        ClientMain agent = new ClientMain(connectionManager);        
+        //ClientMain agent = new ClientMain(connectionManager);        
     	
     }
+    */
     
 
     public ClientMain(ConnectionManager connectionManager) {
@@ -41,9 +46,9 @@ public class ClientMain {
     }
     
     private void connectConfigPeers(String list, ClientMain peer){
-    	System.out.println("here");
     	String[] hostList = list.split(",");
-    	for (String h: hostList) {
+    	for (String h: hostList) 
+    	{
     		PeerRunnable p1 = new PeerRunnable(new HostPort(h),peer);    		
     		p1.start();
     		
@@ -61,13 +66,13 @@ public class ClientMain {
 		private BufferedReader in;
 		private BufferedWriter out;
 		private Logger log = Logger.getLogger(PeerRunnable.class.getName());
-		private Protocol protocol;
+		//private Protocol protocol;
 		private ClientMain peer;
 		Socket socket = null;
 		
 		public PeerRunnable(HostPort pHostPort, ClientMain peer){
 			this.pHostPort = pHostPort;
-			this.protocol  = new Protocol();
+			//this.protocol  = new Protocol();
 			this.peer = peer;
 			
 		}		
@@ -83,11 +88,12 @@ public class ClientMain {
 	    		 * connect each peer.
 	    		 */
 	    		while (!connected && timer<=5){ 	
-	    			System.out.println("Timer: "+ timer);
+	    			//System.out.println("Timer: "+ timer);
 	    				log.warning(this.getName()+ ":"+String.format("Trying peer=%s:%s..." , pHostPort.host , pHostPort.port));
 	    				try	{
-	        				socket = new Socket(pHostPort.host,pHostPort.port);// an object is only assigned to socket if a connection is established   					 
-	            			if (socket.isConnected() && !socket.isClosed()){
+	    					socket = new Socket(pHostPort.host,pHostPort.port);// an object is only assigned to socket if a connection is established   					 
+	    					
+	        				if (socket.isConnected() && !socket.isClosed()){
 	            				socket.setKeepAlive(true);
 	            				
 	            				connected = true;
@@ -104,7 +110,7 @@ public class ClientMain {
 	    				}
 	    				catch (ConnectException e){// Failed to connect to socket 
 	    					log.severe(this.getName()+ ":"+"Connection Exception in attempt to " 
-	    							+ pHostPort.host + ":" + pHostPort.port + " failed.");    					    					
+	    							+ pHostPort.host + ":" + pHostPort.port + " failed.");    
 	    				}catch (NullPointerException m){
 	    	    			log.warning(this.getName()+ ":"+"socket is not open, " 
 	    	    					+ pHostPort.host + ":" + pHostPort.port);
@@ -138,13 +144,17 @@ public class ClientMain {
 				        		log.warning(this.getName()+ ":"+"Client Sending Handshake_Request");
 				        		String hsr = Protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST,
 				        				null);
-								System.out.println("Client.hsr="+hsr); 
-				        		out.write(hsr);
+				        		// TODO Remove this one. Just testing socket timeout.
+				        		//System.out.println("Client.hsr="+hsr); 
+								//Thread.sleep(1000);
+								out.write(hsr);
 								 out.flush();								 
 				        					        		
 				        		log.warning(this.getName()+ ":"+"Client Sent Handshake_Request");
 				        		rxMsg =  Document.parse(in.readLine());
-				        		System.out.println(rxMsg.toJson());
+				        		
+				        		//TODO remove the following line, just for debugging
+				        		//System.out.println(rxMsg.toJson());
 				        		log.warning(this.getName()+ ":"+"Client Received Handshake_response");
 				        			
 				        		if (Protocol.validateHSRefused(rxMsg)){
@@ -156,14 +166,14 @@ public class ClientMain {
 				        		}        					
 				        		else if (Protocol.validateHSResponse(rxMsg)){
 				        			Document hostPort = (Document) rxMsg.get("hostPort");
-				        			System.out.println("BitBox connected to " + hostPort.getString("host") +
+				        			log.info("BitBox connected to " + hostPort.getString("host") +
 				        					" at port " + hostPort.getLong("port") + " for asynchronous communication" );
 				        			
 				        			connectionManager.addConnection(socket, PeerSource.CLIENT, new HostPort(pHostPort.host,pHostPort.port));
 				        		}else {
 				        				
 				        				System.out.println("message invalid"); 
-				        				out.write(this.protocol.createMessage(Constants.Command.INVALID_PROTOCOL,"message invalid".split(":")));
+				        				out.write(Protocol.createMessage(Constants.Command.INVALID_PROTOCOL,"message invalid".split(":")));
 				        				out.flush();
 				        				//closeSocket(out,in,socket);
 				        				log.warning(this.getName()+ ":"+"Message_Invalid: Connection to this peer terminated");
@@ -193,7 +203,7 @@ public class ClientMain {
 		}
 		
 		private void BFSNextPeer() {
-			System.out.println("TE: Queue size="+peer.getGlobalBFSQueue().size());
+			
 			if(!peer.getGlobalBFSQueue().isEmpty())
 			{
 				PeerRunnable p1 = new PeerRunnable((HostPort) peer.getGlobalBFSQueue().poll(),this.peer);		
@@ -213,7 +223,7 @@ public class ClientMain {
 					socket.close();				
 					log.warning(this.getName()+ ":"+"Socket Closed");
 				}else {
-					log.warning(this.getName()+ ":"+"Socket found Null when trying to close");
+					log.warning(this.getName()+ ":"+"Socket is null when trying to close");
 				}
 			}catch(IOException e){
 				log.warning(this.getName()+ ":"+e.getMessage());

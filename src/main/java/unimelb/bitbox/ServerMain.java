@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import unimelb.bitbox.Err.*;
 import java.util.logging.Logger;
 import java.net.InetAddress;
@@ -14,14 +15,13 @@ import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.Constants.PeerSource;
 import unimelb.bitbox.util.*;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 
 
 public class ServerMain implements Runnable {
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	protected FileSystemManager fileSystemManager;
 	public ConnectionManager connectionManager;
+	final int SOCKET_TIMEOUT = 100000;	//Timeout for server socket, 3 seconds
     int connectionCount = 0;
     InetAddress serverAddress;
     ServerSocket serverSocket=null;
@@ -46,7 +46,7 @@ public class ServerMain implements Runnable {
 	@Override
 	public void run()
 	{
-		Socket clientSocket;
+		Socket clientSocket=null;
 		//BufferedReader in = null;
 		//BufferedWriter out = null;
 		try 
@@ -56,6 +56,7 @@ public class ServerMain implements Runnable {
 			while (true)
 			{
 				clientSocket = this.serverSocket.accept();
+				clientSocket.setSoTimeout(Constants.BITBOX_INCOMING_SOCKET_TIMEOUT);
 				/**
 				 * The following block validates the HANDSHAKE_REQUEST and checks the server's capacity.
 				 */
@@ -119,9 +120,19 @@ public class ServerMain implements Runnable {
 						clientSocket.close();
 					}
 				}
+				catch (SocketTimeoutException e)
+				{
+					if (clientSocket!=null)
+					{
+						log.warning(String.format("Socket timeout while accepting connection from %s",
+								clientSocket.getInetAddress().getHostName()));
+						try {clientSocket.close();}
+						catch (Exception z) {log.warning("Error while closing client socket: "+z.getMessage());}
+					}
+				}
 				catch (IOException e)
 				{
-					log.warning(String.format("IO exception while connecting to %",
+					log.warning(String.format("IO exception while connecting to %s",
 							clientSocket.getInetAddress().getHostName()));
 				}
 			}
