@@ -89,7 +89,7 @@ public class ClientMain {
 	    		 */
 	    		while (!connected && timer<=5){ 	
 	    			//System.out.println("Timer: "+ timer);
-	    				log.warning(this.getName()+ ":"+String.format("Trying peer=%s:%s..." , pHostPort.host , pHostPort.port));
+	    				log.warning(this.getName()+ ":"+String.format("Trying peer=%s:%s...\n" , pHostPort.host , pHostPort.port));
 	    				try	{
 	    					socket = new Socket(pHostPort.host,pHostPort.port);// an object is only assigned to socket if a connection is established   					 
 	    					
@@ -97,7 +97,7 @@ public class ClientMain {
 	            				socket.setKeepAlive(true);
 	            				
 	            				connected = true;
-	            				log.warning(this.getName()+ ":"+"Socket Connected to peer "
+	            				log.warning(this.getName()+ ":"+"Socket connected to peer "
 	            						+ pHostPort.host +":"+ pHostPort.port );
 	            				log.warning(this.getName() + socket.getLocalSocketAddress());
 
@@ -132,16 +132,19 @@ public class ClientMain {
 	    		
 	    		
 	    		if(socket!=null) {
-	    			log.warning(this.getName()+ ":"+"Is Client Socket Connected: " + socket.isConnected());
-		    		log.severe(this.getName()+ ":"+"Is Cleint Socket Closed: " +socket.isClosed());
+	    			//TODO remove the following, only valid for debugging.
+	    			//log.warning(this.getName()+ ":"+"Is Client Socket Connected: " + socket.isConnected());
+		    		//log.severe(this.getName()+ ":"+"Is Cleint Socket Closed: " +socket.isClosed());
 		    		
 		    		if (socket.isConnected() && !socket.isClosed()){//if connected to a peer before time out...
 		    			try{
-		    					log.warning(this.getName()+ ":"+"Trying to initiate Handshake_Request");	
+		    					//TODO remove the following logging in the final version.
+		    					//log.warning(this.getName()+ ":"+"Trying to initiate Handshake_Request");	
 		    					in = new BufferedReader(new InputStreamReader(socket.getInputStream(),"UTF8"));  
 		    					out =  new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(),"UTF8"));
-				        		log.warning(this.getName()+ ":"+"Cient Input and Output buffers Successfully Initiated");	
-				        		log.warning(this.getName()+ ":"+"Client Sending Handshake_Request");
+				        		//TODO remove the following logging in the final version.
+		    					//log.warning(this.getName()+ ":"+"Client Input and Output buffers Successfully Initiated");	
+				        		log.warning(this.getName()+ ":"+"Client Sending Handshake Request");
 				        		String hsr = Protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST,
 				        				null);
 				        		// TODO Remove this one. Just testing socket timeout.
@@ -158,21 +161,29 @@ public class ClientMain {
 				        		log.warning(this.getName()+ ":"+"Client Received Handshake_response");
 				        			
 				        		if (Protocol.validateHSRefused(rxMsg)){
+				        			
 				        			ArrayList<Document> peersHostPort = (ArrayList<Document>) rxMsg.get("peers");
-				        			for(Document hostPort:peersHostPort) peer.getGlobalBFSQueue().add(new HostPort(hostPort));
+				        			int numOfPeersReceived=0;
+				        			for(Document hostPort:peersHostPort) 
+				        			{
+				        				peer.getGlobalBFSQueue().add(new HostPort(hostPort));
+				        				numOfPeersReceived++;
+				        			}
+				        			log.warning(this.getName()+ 
+				        					String.format("Connection refused. Received %s peer(s).\n",numOfPeersReceived));
 				        			closeSocket(out,in,socket);
 				        			BFSNextPeer();
 				        				
 				        		}        					
 				        		else if (Protocol.validateHSResponse(rxMsg)){
 				        			Document hostPort = (Document) rxMsg.get("hostPort");
-				        			log.info("BitBox connected to " + hostPort.getString("host") +
-				        					" at port " + hostPort.getLong("port") + " for asynchronous communication" );
+				        			log.info("Connection established to " + hostPort.getString("host") +
+				        					" at port " + hostPort.getLong("port"));
 				        			
 				        			connectionManager.addConnection(socket, PeerSource.CLIENT, new HostPort(pHostPort.host,pHostPort.port));
 				        		}else {
 				        				
-				        				System.out.println("message invalid"); 
+				        				log.warning(String.format("Invalid message received: <%s>.\n",rxMsg));
 				        				out.write(Protocol.createMessage(Constants.Command.INVALID_PROTOCOL,"message invalid".split(":")));
 				        				out.flush();
 				        				//closeSocket(out,in,socket);

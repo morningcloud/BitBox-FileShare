@@ -1,0 +1,60 @@
+[Thu May 02 14:11:17 AEST 2019] unimelb.bitbox.Peer main INFO: BitBox Peer starting...
+[Thu May 02 14:11:17 AEST 2019] unimelb.bitbox.EventProcessor <init> INFO: starting event processor
+[Thu May 02 14:11:17 AEST 2019] unimelb.bitbox.util.FileSystemManager <init> INFO: monitoring G:\My Drive\dev\mit\90015\BitBox\p4\share
+[Thu May 02 14:11:17 AEST 2019] unimelb.bitbox.ClientMain$PeerRunnable run WARNING: Thread-2:Trying peer=localhost:8111...
+[Thu May 02 14:11:17 AEST 2019] unimelb.bitbox.ServerMain run INFO: Server started, listening at 8114
+[Thu May 02 14:11:17 AEST 2019] unimelb.bitbox.util.FileSystemManager <init> INFO: starting file system monitor thread
+[Thu May 02 14:11:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:11:17 AEST 2019] unimelb.bitbox.ClientMain$PeerRunnable run WARNING: Thread-2:Socket Connected to peer localhost:8111
+[Thu May 02 14:11:17 AEST 2019] unimelb.bitbox.ClientMain$PeerRunnable run WARNING: Thread-2/127.0.0.1:51257
+[Thu May 02 14:11:18 AEST 2019] unimelb.bitbox.ClientMain$PeerRunnable run WARNING: Thread-2:Is Client Socket Connected: true
+[Thu May 02 14:11:18 AEST 2019] unimelb.bitbox.ClientMain$PeerRunnable run SEVERE: Thread-2:Is Cleint Socket Closed: false
+[Thu May 02 14:11:18 AEST 2019] unimelb.bitbox.ClientMain$PeerRunnable run WARNING: Thread-2:Trying to initiate Handshake_Request
+[Thu May 02 14:11:18 AEST 2019] unimelb.bitbox.ClientMain$PeerRunnable run WARNING: Thread-2:Cient Input and Output buffers Successfully Initiated
+[Thu May 02 14:11:18 AEST 2019] unimelb.bitbox.ClientMain$PeerRunnable run WARNING: Thread-2:Client Sending Handshake_Request
+[Thu May 02 14:11:18 AEST 2019] unimelb.bitbox.ClientMain$PeerRunnable run WARNING: Thread-2:Client Sent Handshake_Request
+[Thu May 02 14:11:18 AEST 2019] unimelb.bitbox.ClientMain$PeerRunnable run WARNING: Thread-2:Client Received Handshake_response
+[Thu May 02 14:11:18 AEST 2019] unimelb.bitbox.ClientMain$PeerRunnable run INFO: BitBox connected to localhost at port 8111 for asynchronous communication
+[Thu May 02 14:11:18 AEST 2019] unimelb.bitbox.Connection <init> INFO: Active Connection maintained for: 127.0.0.1:8111
+[Thu May 02 14:11:18 AEST 2019] unimelb.bitbox.EventProcessor run INFO: External Command Received from 127.0.0.1:8111... Processing {"command":"SYNC_EVENTS"}
+[Thu May 02 14:11:18 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Peer SyncEvent Generation Started. Peer 127.0.0.1:8111
+[Thu May 02 14:12:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:12:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:12:23 AEST 2019] unimelb.bitbox.Connection <init> INFO: Active Connection maintained for: 127.0.0.1:51273
+[Thu May 02 14:12:23 AEST 2019] unimelb.bitbox.EventProcessor run INFO: External Command Received from 127.0.0.1:51273... Processing {"command":"SYNC_EVENTS"}
+[Thu May 02 14:12:23 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Peer SyncEvent Generation Started. Peer 127.0.0.1:51273
+[Thu May 02 14:12:23 AEST 2019] unimelb.bitbox.ServerMain run INFO: Connected to: 127.0.0.1, total number of established connections: 2
+
+[Thu May 02 14:13:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:13:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:14:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:14:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:15:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:15:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:16:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:16:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:17:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:17:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:18:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:18:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:19:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:19:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:20:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:20:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:21:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:21:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:22:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:22:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:23:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:23:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:24:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:24:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:25:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:25:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:26:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:26:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:27:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
+[Thu May 02 14:27:17 AEST 2019] unimelb.bitbox.EventProcessor processSyncEvents INFO: Scheduled Interval SyncEvent Generation Started...
+[Thu May 02 14:28:01 AEST 2019] unimelb.bitbox.ConnectionManager connectionClosed INFO: Removing Peer from active connection list 127.0.0.1:51273
+[Thu May 02 14:28:07 AEST 2019] unimelb.bitbox.ConnectionManager connectionClosed INFO: Removing Peer from active connection list 127.0.0.1:8111
+[Thu May 02 14:28:17 AEST 2019] unimelb.bitbox.Peer$1 run INFO: Time for Sync
