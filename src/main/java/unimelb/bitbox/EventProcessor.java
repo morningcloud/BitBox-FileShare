@@ -322,12 +322,12 @@ public class EventProcessor implements FileSystemObserver, Runnable
 						message.setMessage("directory created.");
 					}
 					else {
-						log.severe("fileSystemManager.makeDirectory returned false!!");
+						log.severe(pathName+" fileSystemManager.makeDirectory returned false!!");
 						message.setSuccessStatus(false);
 						message.setMessage("there was a problem creating the directory");
 					}
 				}catch(Exception e) {
-					log.severe("Exception in makeDirectory, rejecting request.");
+					log.severe("Exception in makeDirectory, rejecting request."+pathName);
 					e.printStackTrace();
 					message.setSuccessStatus(false);
 					message.setMessage("there was a problem creating the directory");
@@ -389,12 +389,12 @@ public class EventProcessor implements FileSystemObserver, Runnable
 						message.setMessage("directory deleted");
 					}
 					else {
-						log.severe("fileSystemManager.deleteDirectory returned false!!");
+						log.severe(pathName+" fileSystemManager.deleteDirectory returned false!!");
 						message.setSuccessStatus(false);
 						message.setMessage("there was a problem deleting the directory");
 					}
 				}catch(Exception e) {
-					log.severe("Exception in makeDirectory, rejecting request.");
+					log.severe("Exception in makeDirectory, rejecting request."+pathName);
 					e.printStackTrace();
 					message.setSuccessStatus(false);
 					message.setMessage("there was a problem deleting the directory");
@@ -453,27 +453,27 @@ public class EventProcessor implements FileSystemObserver, Runnable
 							}
 						}
 						else {
-							log.severe("fileSystemManager.createFileLoader returned false!!");
+							log.severe(pathName+"fileSystemManager.createFileLoader returned false!!");
 							message.setSuccessStatus(false);
-							message.setMessage("there was a problem creating the file");
+							message.setMessage("there was a problem creating the file. file loader was not created");
 						}
 					}
 					catch (IOException e)
 					{
-						log.severe("IO error: "+e.getMessage());
+						log.severe("IO error in file: "+pathName+": "+e.getMessage());
 						e.printStackTrace();
 						message.setSuccessStatus(false);
-						message.setMessage("there was a problem creating the file");
+						message.setMessage("there was a problem creating the file. "+e.getMessage());
 					}
 					catch (NoSuchAlgorithmException e)
 					{
-						log.severe("No such algorithm: "+e.getMessage());
+						log.severe("No such algorithm in file: "+pathName+":"+e.getMessage());
 						e.printStackTrace();
 						message.setSuccessStatus(false);
-						message.setMessage("there was a problem creating the file");
+						message.setMessage("there was a problem creating the file. "+e.getMessage());
 					}
 					catch(Exception e) {
-						log.severe("Exception in file create, rejecting request.");
+						log.severe("Exception in file create "+pathName+", rejecting request.");
 						e.printStackTrace();
 						message.setSuccessStatus(false);
 						message.setMessage("there was a problem creating the file");
@@ -522,7 +522,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 							message.setMessage("file deleted");
 						}
 						else {
-							log.severe("fileSystemManager.deleteFile returned false!!");
+							log.severe(pathName+" fileSystemManager.deleteFile returned false!!");
 							message.setSuccessStatus(false);
 							message.setMessage("there was a problem deleting the file");
 						}
@@ -545,6 +545,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 		catch (Exception e)
 		{
 			log.severe("Unhandled exception: "+e.getMessage());
+			e.printStackTrace();
 		}
 	}
 	
@@ -592,27 +593,27 @@ public class EventProcessor implements FileSystemObserver, Runnable
 							}
 						}
 						else {
-							log.severe("fileSystemManager.modifyFileLoader returned false!!");
+							log.severe(pathName+" fileSystemManager.modifyFileLoader returned false!!");
 							message.setSuccessStatus(false);
-							message.setMessage("there was a problem modifying the file");
+							message.setMessage("there was a problem modifying the file. File loader was not created.");
 						}
 					}
 					catch (IOException e)
 					{
-						log.severe("IO error: "+e.getMessage());
+						log.severe("IO error in file: "+pathName+": "+e.getMessage());
 						message.setSuccessStatus(false);
-						message.setMessage("there was a problem modifying the file");
+						message.setMessage("there was a problem modifying the file. "+e.getMessage());
 						e.printStackTrace();
 					}
 					catch (NoSuchAlgorithmException e)
 					{
-						log.severe("No such algorithm: "+e.getMessage());
+						log.severe("No such algorithm in file: "+pathName+": "+e.getMessage());
 						message.setSuccessStatus(false);
-						message.setMessage("there was a problem modifying the file");
+						message.setMessage("there was a problem modifying the file. "+e.getMessage());
 						e.printStackTrace();
 					}
 					catch(Exception e) {
-						log.severe("Exception in file modify, rejecting request.");
+						log.severe("Exception in file modify "+pathName+", rejecting request.");
 						e.printStackTrace();
 						message.setSuccessStatus(false);
 						message.setMessage("there was a problem creating the file");
@@ -675,12 +676,13 @@ public class EventProcessor implements FileSystemObserver, Runnable
 								if (toread < blockSize)
 									blockSize = toread;
 								byteReqMessage.setLength(blockSize);
+								//Send Request for additional bytes
 								sendResponse(byteReqMessage);
 							}
 						}
 					}
 					else {
-						log.severe("fileSystemManager.writeFile returned false!!");
+						log.severe(pathName+" fileSystemManager.writeFile returned false!!");
 						message.setSuccessStatus(false);
 						message.setMessage("unsuccessful write - no such file with that content");
 						cancelfile=true;
@@ -688,22 +690,28 @@ public class EventProcessor implements FileSystemObserver, Runnable
 				}
 				catch (IOException e)
 				{
-					log.severe("IO error: "+e.getMessage());
+					log.severe("IO error in file: "+pathName+": "+e.getMessage());
 					message.setSuccessStatus(false);
-					message.setMessage("there was a problem writing the file");
+					message.setMessage("there was a problem writing the file. "+e.getMessage());
 					cancelfile=true;
 					e.printStackTrace();
+					try {//Since no more requests will come due to error cancel the file loader
+					fileSystemManager.cancelFileLoader(pathName);}
+					catch(Exception ex) {}
 				}
 				catch (NoSuchAlgorithmException e)
 				{
-					log.severe("No such algorithm: "+e.getMessage());
+					log.severe("No such algorithm in file "+pathName+": "+e.getMessage());
 					message.setSuccessStatus(false);
-					message.setMessage("there was a problem writing the file");
+					message.setMessage("there was a problem writing the file. "+e.getMessage());
 					cancelfile=true;
 					e.printStackTrace();
+					try {//Since no more requests will come due to error cancel the file loader
+					fileSystemManager.cancelFileLoader(pathName);}
+					catch(Exception ex) {}
 				}
 				catch(Exception e) {
-					log.severe("Exception in file write, rejecting request.");
+					log.severe("Exception in file write,"+pathName+" rejecting request.");
 					e.printStackTrace();
 					message.setSuccessStatus(false);
 					message.setMessage("there was a problem write the file");
@@ -718,9 +726,9 @@ public class EventProcessor implements FileSystemObserver, Runnable
 			
 			if (cancelfile)
 				fileSystemManager.cancelFileLoader(pathName);
-			
-			if (send)
-				sendResponse(message);
+			//Commented as there is no response message as per the protocol and below code block will never run
+			//if (send)
+			//	sendResponse(message);
 				
 		}
 		catch (Exception e)
@@ -757,21 +765,21 @@ public class EventProcessor implements FileSystemObserver, Runnable
 				{
 					log.severe("IO error: "+e.getMessage());
 					message.setSuccessStatus(false);
-					message.setMessage("there was a problem reading the file");
+					message.setMessage("there was a problem reading the file. "+e.getMessage());
 					e.printStackTrace();
 				}
 				catch (NoSuchAlgorithmException e)
 				{
 					log.severe("No such algorithm: "+e.getMessage());
 					message.setSuccessStatus(false);
-					message.setMessage("there was a problem reading the file");
+					message.setMessage("there was a problem reading the file. "+e.getMessage());
 					e.printStackTrace();
 				}
 				catch(Exception e) {
 					log.severe("Exception in file read, rejecting request.");
 					e.printStackTrace();
 					message.setSuccessStatus(false);
-					message.setMessage("there was a problem reading the file");
+					message.setMessage("there was a problem reading the file."+e.getMessage());
 				}
 			}else {
 				message.setSuccessStatus(false);

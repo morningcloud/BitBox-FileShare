@@ -75,7 +75,7 @@ public class Peer
         
         long syncInterval = Long.parseLong(Configuration.getConfigurationValue("syncInterval")) * 1000; //get time in milli
         //start sync event timer tread
-        //TODO Works but may implement in a better way
+        //Works but may implement in a better way
         Thread syncThread = new Thread(new Runnable() {
         							public void run() {
         								while(true) {

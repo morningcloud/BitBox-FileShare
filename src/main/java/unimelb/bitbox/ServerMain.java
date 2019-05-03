@@ -68,21 +68,21 @@ public class ServerMain implements Runnable {
 					in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(),"UTF8"));
 					out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(),"UTF8"));
 					Document response;
-					Document handshakeMsg = Document.parse(in.readLine());
+					String inmsg = in.readLine();
+					Document handshakeMsg = Document.parse(inmsg);
 					try
 					{
 						//Validates the HANDSHAKE_REQUEST and throws exception if invalid.
 						if (Protocol.validate(handshakeMsg))
 						{
-							//If HANDSHAKE_REQUEST is valid but the server is at it's maximum capacity
+							//If HANDSHAKE_REQUEST is valid but the server is at it's maximum incoming connection capacity
 							//a CONNECTION_REFUSED message is sent and the connection is closed.
-							//TO-DO check only on the incoming connections; type Server.
-							if (connectionManager.activePeerConnection.size()>=connectionManager.MAX_NO_OF_CONNECTION)
+							if (connectionManager.getActiveConnectionCountBySource(PeerSource.SERVER) >= connectionManager.MAX_NO_OF_CONNECTION)
 							{
 								response = new Document();
 								response.append("command", "CONNECTION_REFUSED");
 								response.append("message", "connection limit reached");
-								response.append("peers", connectionManager.getPeerList());										  ;
+								response.append("peers", connectionManager.getPeerList());
 								out.write(response.toJson()+"\n");
 								out.flush();
 								HostPort connectingPeer = new HostPort((Document)handshakeMsg.get("hostPort"));
@@ -100,12 +100,21 @@ public class ServerMain implements Runnable {
 								out.write(response.toJson()+"\n");
 								out.flush();
 								HostPort connectingPeer = new HostPort((Document)handshakeMsg.get("hostPort"));
-								this.connectionManager.addConnection(clientSocket, PeerSource.SERVER,connectingPeer);
+								this.connectionManager.addConnection(clientSocket, PeerSource.SERVER, connectingPeer);
 								log.info(String.format("Connected to: %s, total number of established connections: %s\n",
 										clientSocket.getInetAddress().getHostName(),
 										this.connectionManager.activePeerConnection.size()
 										));
 							}
+						}
+						else //if something other than handshake received decline
+						{
+							response = new Document();
+							response.append("command", "INVALID_PROTOCOL");
+							response.append("message", "invalid message, expecting HANDSHAKE_REQUEST");
+							out.write(response.toJson()+"\n");
+							out.flush();
+							clientSocket.close();
 						}
 					}
 
@@ -115,7 +124,7 @@ public class ServerMain implements Runnable {
 						response = new Document();
 						response.append("command", "INVALID_PROTOCOL");
 						response.append("message", e.getMessage());
-						out.write(response.toJson());
+						out.write(response.toJson()+"\n");
 						out.flush();
 						clientSocket.close();
 					}
@@ -124,7 +133,7 @@ public class ServerMain implements Runnable {
 				{
 					if (clientSocket!=null)
 					{
-						log.warning(String.format("Socket timeout while accepting connection from %s",
+						log.warning(String.format("Socket timeout while waiting for Handshake Request from %s dropping the connection.",
 								clientSocket.getInetAddress().getHostName()));
 						try {clientSocket.close();}
 						catch (Exception z) {log.warning("Error while closing client socket: "+z.getMessage());}
@@ -132,14 +141,16 @@ public class ServerMain implements Runnable {
 				}
 				catch (IOException e)
 				{
-					log.warning(String.format("IO exception while connecting to %s",
+					log.severe(String.format("IO exception while connecting to %s",
 							clientSocket.getInetAddress().getHostName()));
+					e.printStackTrace();
 				}
 			}
 		}
 		catch (IOException ex) 
 		{
-			log.severe(ex.getMessage());
+			log.severe("IOException "+ex.getMessage());
+			ex.printStackTrace();
 		}
 	
 		catch (Exception e)

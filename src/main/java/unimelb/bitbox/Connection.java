@@ -75,6 +75,7 @@ public class Connection implements Runnable {
 	    				//If this flag is set, we should terminate the connection after sending the last message
 	    				if (buffer.terminateAfterSend)
 	    				{
+	    					log.info("terminateAfterSend flag set... closing the connection with "+peer.toString());
 	    					closeAndClean();
 	    				}
 					}
@@ -88,7 +89,7 @@ public class Connection implements Runnable {
 						//this.connectionManager.enqueueMessage(inBuffer);
 						}
 						catch(Exception e) {
-							log.severe("exception in message receive "+e.getMessage());
+							log.severe("unexpected exception in message receive "+e.getMessage()+" message dropped");
 							e.printStackTrace();
 						}
 					}
@@ -97,6 +98,7 @@ public class Connection implements Runnable {
 				}
 				else
 				{
+					log.info("clientSocket Closed or not connected anymore... closing the connection with "+peer.toString());
 					closeAndClean();
 				}
 			}
@@ -108,8 +110,9 @@ public class Connection implements Runnable {
 			//TODO should raise connection close event to the connection manager to remove this from the list
 			//networkObserver.connectionClosed(peer);
 			
-			//TODO close the socket and cleanup
-			
+			//close the socket and cleanup
+			log.severe("exception in connection thread "+e.getMessage()+" closing the connection with peer "+peer.toString());
+			closeAndClean();
 			e.printStackTrace();
 		}
 	}
@@ -123,7 +126,8 @@ public class Connection implements Runnable {
 			if (in != null) in.close();
 			if (out!= null) out.close();
 		}catch(Exception e) {
-			
+			log.severe("exception while close & clean connection "+e.getMessage());
+			e.printStackTrace();
 		}
 	}
 	

@@ -97,9 +97,9 @@ public class ClientMain {
 	            				socket.setKeepAlive(true);
 	            				
 	            				connected = true;
-	            				log.warning(this.getName()+ ":"+"Socket connected to peer "
+	            				log.info(this.getName()+ ":"+"Socket connected to peer "
 	            						+ pHostPort.host +":"+ pHostPort.port );
-	            				log.warning(this.getName() + socket.getLocalSocketAddress());
+	            				log.info(this.getName() +"Local socket address: "+ socket.getLocalSocketAddress());
 
 	            			}
 	    				}
@@ -144,21 +144,21 @@ public class ClientMain {
 		    					out =  new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(),"UTF8"));
 				        		//TODO remove the following logging in the final version.
 		    					//log.warning(this.getName()+ ":"+"Client Input and Output buffers Successfully Initiated");	
-				        		log.warning(this.getName()+ ":"+"Client Sending Handshake Request");
+				        		log.warning(this.getName()+ ":"+"Client Sending Handshake Request to "+pHostPort.toString());
 				        		String hsr = Protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST,
 				        				null);
 				        		// TODO Remove this one. Just testing socket timeout.
 				        		//System.out.println("Client.hsr="+hsr); 
 								//Thread.sleep(1000);
 								out.write(hsr);
-								 out.flush();								 
+								out.flush();								 
 				        					        		
-				        		log.warning(this.getName()+ ":"+"Client Sent Handshake_Request");
+				        		log.info(this.getName()+ ":"+"Client Sent Handshake_Request to "+pHostPort.toString()+ " message sent: " +hsr);
 				        		rxMsg =  Document.parse(in.readLine());
 				        		
 				        		//TODO remove the following line, just for debugging
 				        		//System.out.println(rxMsg.toJson());
-				        		log.warning(this.getName()+ ":"+"Client Received Handshake_response");
+				        		log.info(this.getName()+ ":"+"Client Received response to Handshake_Request from "+pHostPort.toString()+" message received: "+rxMsg.toJson());
 				        			
 				        		if (Protocol.validateHSRefused(rxMsg)){
 				        			
@@ -170,7 +170,7 @@ public class ClientMain {
 				        				numOfPeersReceived++;
 				        			}
 				        			log.warning(this.getName()+ 
-				        					String.format("Connection refused. Received %s peer(s).\n",numOfPeersReceived));
+				        					String.format("Connection refused from %s. Received %s peer(s).\n", pHostPort.toString(), numOfPeersReceived));
 				        			closeSocket(out,in,socket);
 				        			BFSNextPeer();
 				        				
@@ -194,15 +194,16 @@ public class ClientMain {
 			    			}
 			    			
 				    	catch (NullPointerException m){
-				    		
-				    			log.warning(this.getName()+ ":"+m.getMessage() + ": Null Pointer Exception during message processing");
+				    		m.printStackTrace();
+				    		log.severe(this.getName()+ ":"+m.getMessage() + ": Null Pointer Exception during message processing");
 				    	}
 		    			catch (IOException m){
-				    		
-				    			log.warning(this.getName()+ ":"+m.getMessage() + ": IOException during message processing");
+		    				m.printStackTrace();
+				    		log.severe(this.getName()+ ":"+m.getMessage() + ": IOException during message processing");
 		    			}
 				    	catch (Exception z){
-				    			log.warning(this.getName()+ " Exception during message processing : "+z.getMessage());
+				    		z.printStackTrace();
+				    		log.severe(this.getName()+ " Exception during message processing : "+z.getMessage());
 				    	}
 		    		}
 		}
@@ -237,7 +238,8 @@ public class ClientMain {
 					log.warning(this.getName()+ ":"+"Socket is null when trying to close");
 				}
 			}catch(IOException e){
-				log.warning(this.getName()+ ":"+e.getMessage());
+				log.severe(this.getName()+ ":"+e.getMessage());
+				e.printStackTrace();
 			}		
 		}
 	}

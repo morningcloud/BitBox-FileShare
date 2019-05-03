@@ -1,12 +1,8 @@
 package unimelb.bitbox;
 
-import java.io.IOException;
-import java.io.ObjectInputStream.GetField;
 import java.nio.ByteBuffer;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.codec.binary.Base64;

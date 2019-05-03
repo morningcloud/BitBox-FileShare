@@ -144,6 +144,20 @@ public class ConnectionManager implements NetworkObserver {
 		}
 	}
 	
+	public int getActiveConnectionCountBySource(PeerSource source) {
+		int count = 0;
+		for (Connection peer:activePeerConnection.values())
+		{
+			if (peer.peerSource == source)
+				count++;
+		}
+		return count;
+	}
+	
+	public int getActiveConnectionCount() {
+		return activePeerConnection.size();
+	}
+	
 	@Override
 	public void processNetworkEvent(FileSystemEvent fileSystemEvent) {
 		// TODO Auto-generated method stub
@@ -190,11 +204,11 @@ public class ConnectionManager implements NetworkObserver {
 				inMsg.setFromAddress(connectionID);
 				incomingMessagesQueue.put(inMsg);
 				if(inMsg.getCommand()==Command.INVALID_PROTOCOL)
-					log.warning("Got INVALID_PROTOCOL from "+connectionID.toString());
+					log.severe("Got INVALID_PROTOCOL from "+connectionID.toString());
 			}
 			catch(JsonParserException e) {
 				//Error during message parsing, return invalid protocol to sender
-				System.out.println("TE: messageReceived.catch.JsonParserException:"+message);
+				log.severe("TE: messageReceived.catch.JsonParserException:"+message);
 				String[] msg = new String[1];
 				msg[0] = e.getMessage();
 				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg), true);
@@ -203,7 +217,7 @@ public class ConnectionManager implements NetworkObserver {
 				//Error during message parsing, return invalid protocol to sender
 				String[] msg = new String[1];
 				msg[0] = e.getMessage();
-				System.out.println("TE: messageReceived.catch.InvalidCommandException:"+message);
+				log.severe("TE: messageReceived.catch.InvalidCommandException:"+message);
 				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg), true);
 				log.severe("Message parsing failed "+e.getMessage());
 			} 
