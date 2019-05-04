@@ -87,7 +87,7 @@ public class ClientMain {
 	    		 * so timer = 10 will make 10sec of trying to
 	    		 * connect each peer.
 	    		 */
-	    		while (!connected && timer<=5){ 	
+	    		while (!connected) {// && timer<=5){ 	
 	    			//System.out.println("Timer: "+ timer);
 	    				log.warning(this.getName()+ ":"+String.format("Trying peer=%s:%s...\n" , pHostPort.host , pHostPort.port));
 	    				try	{

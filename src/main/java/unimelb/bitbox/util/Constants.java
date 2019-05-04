@@ -5,7 +5,7 @@ public class Constants{
 	public static final int BITBOX_SOCKET_TIMEOUT = 3000; //Socket read timeout in milliseconds
 	public static final int BITBOX_INCOMING_SOCKET_TIMEOUT = 3000;
 	public static final long BITBOX_THREAD_SLEEP_TIME = 10; //Thread Sleep time in milliseconds
-	public static final long BITBOX_CONNECTION_THREAD_SLEEP_TIME = 1000; //Thread Sleep time in milliseconds
+	public static final long BITBOX_CONNECTION_THREAD_SLEEP_TIME = 5000; //Thread Sleep time in milliseconds
 	
 	
 	public enum State {
