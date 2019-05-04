@@ -1,7 +1,9 @@
 package unimelb.bitbox;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.FileSystems;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.logging.Level;
@@ -16,10 +18,12 @@ import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.FileSystemObserver;
 import unimelb.bitbox.util.HostPort;
+import unimelb.bitbox.util.FileSystemManager.FileDescriptor;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 
 
 public class EventProcessor implements FileSystemObserver, Runnable
@@ -29,7 +33,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 	public LinkedList<Document> outQueue;
 	private BlockingQueue<Message> incomingMessages;
 	public ConnectionManager connectionManager;
-
+	private String path;
 	/*
 	 * This thread constantly takes/monitor incomingMessages from the message queue
 	 *  and then call processor to process it.
@@ -74,7 +78,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 	public EventProcessor(ConnectionManager connectionManager)
 	{
 		log.info("starting event processor");
-		String path = Configuration.getConfigurationValue("path");
+		path = Configuration.getConfigurationValue("path");
 		if (path!=null)
 		{
 			try
@@ -83,6 +87,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 				this.outQueue = new LinkedList<Document>();
 				this.connectionManager = connectionManager;
 				this.incomingMessages = connectionManager.getIncomingMessagesQueue();
+				//this.watchedFiles = new HashMap<String,FileDetails>();
 			}
 			
 			catch (Exception e)
@@ -409,6 +414,35 @@ public class EventProcessor implements FileSystemObserver, Runnable
 		sendResponse(message);
 	}
 	
+	
+	/**
+	   * Test if the file exists, ignoring the contents of the file.
+	   * @param pathName The name of the file to test for, relative 
+	   * to the share directory.
+	   * @return boolean True if the file exists. In the case of
+	   *  a file that is being created and currently loading, returns
+	   *  false. In the case of a file that is being modified and
+	   *  currently loading, returns true.
+	   */
+	public boolean fileNameExists(String pathName) {
+		pathName=separatorsToSystem(pathName);
+		synchronized(this) {
+			return true; //watchedFiles.containsKey(root+FileSystems.getDefault().getSeparator()+pathName);
+		}
+	}
+	
+	//Copied from FileSystemManager
+	private static String separatorsToSystem(String res) {
+	    if (res==null) return null;
+	    if (File.separatorChar=='\\') {
+	        // From Windows to Linux/Mac
+	        return res.replace('/', File.separatorChar);
+	    } else {
+	        // From Linux/Mac to Windows
+	        return res.replace('\\', File.separatorChar);
+	    }
+	}
+	
 	private void processIncomingFileCreateRequest(Message message) {
 		/**
 		 * Check if file can be created (which FSM APIs do that?)
@@ -427,15 +461,29 @@ public class EventProcessor implements FileSystemObserver, Runnable
 		{	
 			if (fileSystemManager.isSafePathName(pathName))
 			{
-				if (fileSystemManager.fileNameExists(pathName))
-				{
-					message.setSuccessStatus(false);
-					message.setMessage("pathname already exists");
-				}
-				else {
-					try {
-						if (fileSystemManager.createFileLoader(pathName, md5, fileSize, lastModified))
+				try {
+					if (fileSystemManager.fileNameExists(pathName))
+					{
+						//GHD if old dated file exists, modify file instead of directly rejecting it
+						boolean reject = true;
+						synchronized(this) {
+							String fullPathName=path+FileSystems.getDefault().getSeparator()+separatorsToSystem(pathName);
+							File file = new File(fullPathName);
+							//if files are different and the incoming file is newer
+							if(!fileSystemManager.fileNameExists(pathName, md5) && file.lastModified() < lastModified)
+								reject = false;
+						}
+						if (reject)
 						{
+							message.setSuccessStatus(false);
+							message.setMessage("pathname already exists");
+	
+							sendResponse(message);
+							return;
+						}
+						log.info(pathName+" different older file found for incoming file creation. Modifing file instead.");
+						
+						if(fileSystemManager.modifyFileLoader(pathName, md5, lastModified)) {
 							message.setSuccessStatus(true);
 							message.setMessage("file loader ready");
 							//if checkShortcut returns false it would have copied a local folder already and no further action needed.
@@ -453,31 +501,54 @@ public class EventProcessor implements FileSystemObserver, Runnable
 							}
 						}
 						else {
-							log.severe(pathName+"fileSystemManager.createFileLoader returned false!!");
+							log.severe(pathName+"fileSystemManager.modifyFileLoader returned false!!");
 							message.setSuccessStatus(false);
 							message.setMessage("there was a problem creating the file. file loader was not created");
 						}
 					}
-					catch (IOException e)
+					else if (fileSystemManager.createFileLoader(pathName, md5, fileSize, lastModified))
 					{
-						log.severe("IO error in file: "+pathName+": "+e.getMessage());
-						e.printStackTrace();
-						message.setSuccessStatus(false);
-						message.setMessage("there was a problem creating the file. "+e.getMessage());
+						message.setSuccessStatus(true);
+						message.setMessage("file loader ready");
+						//if checkShortcut returns false it would have copied a local folder already and no further action needed.
+						// otherwise we need to initiate a file_byte_request
+						if(!fileSystemManager.checkShortcut(pathName)) {
+							//We need to initiate the first file byte request message
+							Message byteReqMessage = new Message(message);
+							byteReqMessage.setCommand(Command.FILE_BYTES_REQUEST);
+							byteReqMessage.setPosition(0); //since it is first request the position is 0
+							byteReqMessage.setLength(blockSize);
+							sendResponse(byteReqMessage);
+						}
+						else {
+							log.info(String.format("Another local file already exists with the same content of %s... Shortcut copy done.",pathName));
+						}
 					}
-					catch (NoSuchAlgorithmException e)
-					{
-						log.severe("No such algorithm in file: "+pathName+":"+e.getMessage());
-						e.printStackTrace();
+					else {
+						log.severe(pathName+"fileSystemManager.createFileLoader returned false!!");
 						message.setSuccessStatus(false);
-						message.setMessage("there was a problem creating the file. "+e.getMessage());
+						message.setMessage("there was a problem creating the file. file loader was not created");
 					}
-					catch(Exception e) {
-						log.severe("Exception in file create "+pathName+", rejecting request.");
-						e.printStackTrace();
-						message.setSuccessStatus(false);
-						message.setMessage("there was a problem creating the file");
-					}
+				}
+				catch (IOException e)
+				{
+					log.severe("IO error in file: "+pathName+": "+e.getMessage());
+					e.printStackTrace();
+					message.setSuccessStatus(false);
+					message.setMessage("there was a problem creating the file. "+e.getMessage());
+				}
+				catch (NoSuchAlgorithmException e)
+				{
+					log.severe("No such algorithm in file: "+pathName+":"+e.getMessage());
+					e.printStackTrace();
+					message.setSuccessStatus(false);
+					message.setMessage("there was a problem creating the file. "+e.getMessage());
+				}
+				catch(Exception e) {
+					log.severe("Exception in file create "+pathName+", rejecting request.");
+					e.printStackTrace();
+					message.setSuccessStatus(false);
+					message.setMessage("there was a problem creating the file");
 				}
 			}else {
 				message.setSuccessStatus(false);
@@ -805,5 +876,19 @@ public class EventProcessor implements FileSystemObserver, Runnable
 			e.printStackTrace();
 		}
 	}
-
+	/*
+	//Future enhancement
+	public class FileDetails {
+		public long lastModified;
+		public FileTransferStatus status;
+		public long lastByteRequestTime;
+	}
+	enum FileTransferStatus{
+		CREATED,
+		MODIFED,
+		BYTE_REQUEST,
+		BYTE_RECEIVED,
+		COMPLETED
+	}
+	*/
 }
