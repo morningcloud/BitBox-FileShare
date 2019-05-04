@@ -72,8 +72,19 @@ public class ServerMain implements Runnable {
 					Document handshakeMsg = Document.parse(inmsg);
 					try
 					{
-						//Validates the HANDSHAKE_REQUEST and throws exception if invalid.
-						if (Protocol.validate(handshakeMsg))
+						HostPort connectingPeer = null;
+						//Validates the HANDSHAKE_REQUEST and get the host of the peer... throws exception if invalid.
+						connectingPeer = Protocol.validateHS(handshakeMsg);
+						if (connectingPeer != null && connectionManager.isPeerConnected(connectingPeer)) {
+							response = new Document();
+							response.append("command", "INVALID_PROTOCOL");
+							response.append("message", "Peer was already connected.");
+							out.write(response.toJson()+"\n");
+							out.flush();
+							log.info(String.format("Connection from %s refused.\n Message sent: %s\n",connectingPeer.toString(),response.toJson()));
+							clientSocket.close();
+						}
+						else if (connectingPeer != null) 
 						{
 							//If HANDSHAKE_REQUEST is valid but the server is at it's maximum incoming connection capacity
 							//a CONNECTION_REFUSED message is sent and the connection is closed.
@@ -85,7 +96,6 @@ public class ServerMain implements Runnable {
 								response.append("peers", connectionManager.getPeerList());
 								out.write(response.toJson()+"\n");
 								out.flush();
-								HostPort connectingPeer = new HostPort((Document)handshakeMsg.get("hostPort"));
 								log.info(String.format("Connection from %s refused.\n Message sent: %s\n",connectingPeer.toString(),response.toJson()));
 								clientSocket.close();
 								
@@ -99,7 +109,6 @@ public class ServerMain implements Runnable {
 								response.append("hostPort",this.serverHostPort.toDoc());
 								out.write(response.toJson()+"\n");
 								out.flush();
-								HostPort connectingPeer = new HostPort((Document)handshakeMsg.get("hostPort"));
 								this.connectionManager.addConnection(clientSocket, PeerSource.SERVER, connectingPeer);
 								log.info(String.format("Connected to: %s, total number of established connections: %s\n",
 										clientSocket.getInetAddress().getHostName(),

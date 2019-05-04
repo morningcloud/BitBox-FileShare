@@ -3,6 +3,7 @@ package unimelb.bitbox;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import unimelb.bitbox.Err.InvalidCommandException;
@@ -27,8 +28,9 @@ public class ConnectionManager implements NetworkObserver {
 		this.MAX_NO_OF_CONNECTION = maxNoOfConnections;
 		this.incomingMessagesQueue = MessageQueue;
 		this.serverHostPort = serverHostPort;
-		this.activePeerConnection = new HashMap<String, Connection>(); //Collections.synchronizedMap(new HashMap<>());
-		this.activePeerHostPort=new HashMap<String, HostPort>();
+
+		this.activePeerConnection = Collections.synchronizedMap(new HashMap<String, Connection>()); //Collections.synchronizedMap(new HashMap<>());
+		this.activePeerHostPort=Collections.synchronizedMap(new HashMap<String, HostPort>());
 	}
 	
 	public BlockingQueue<Message> getIncomingMessagesQueue() {
@@ -152,6 +154,19 @@ public class ConnectionManager implements NetworkObserver {
 				count++;
 		}
 		return count;
+	}
+	
+	public boolean isPeerConnected(HostPort peer) {
+		//get the active connection to the specific peer if exists
+		return activePeerHostPort.containsValue(peer);
+		/*
+		//if would be better if we can verify the actual connection
+		Connection conn = activePeerConnection.get(peer.toString());
+		if (conn != null)
+			return conn.isConnected();
+		
+		return false;
+		*/
 	}
 	
 	public int getActiveConnectionCount() {

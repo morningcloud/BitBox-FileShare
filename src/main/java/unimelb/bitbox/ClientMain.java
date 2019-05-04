@@ -5,6 +5,7 @@ import java.net.UnknownHostException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -87,7 +88,9 @@ public class ClientMain {
 	    		 * so timer = 10 will make 10sec of trying to
 	    		 * connect each peer.
 	    		 */
-	    		while (!connected) {// && timer<=5){ 	
+	    	//Before attempting connection verify if this peer is already having active connection with us
+	    	connected = connectionManager.isPeerConnected(pHostPort);
+	    		while (!connected && timer<=Constants.BITBOX_CONNECTION_ATTEMPT_MAX_COUNT){ 	
 	    			//System.out.println("Timer: "+ timer);
 	    				log.warning(this.getName()+ ":"+String.format("Trying peer=%s:%s...\n" , pHostPort.host , pHostPort.port));
 	    				try	{
@@ -95,6 +98,7 @@ public class ClientMain {
 	    					
 	        				if (socket.isConnected() && !socket.isClosed()){
 	            				socket.setKeepAlive(true);
+	            				socket.setSoTimeout(Constants.BITBOX_INCOMING_SOCKET_TIMEOUT);
 	            				
 	            				connected = true;
 	            				log.info(this.getName()+ ":"+"Socket connected to peer "
@@ -192,7 +196,17 @@ public class ClientMain {
 				        				BFSNextPeer();
 				        			}
 			    			}
-			    			
+						catch (SocketTimeoutException e)
+						{
+							if (socket!=null)
+							{
+								log.warning(String.format("Socket timeout while waiting for Handshake Response from %s dropping the connection.",
+										socket.getInetAddress().getHostName()));
+								
+								closeSocket(out,in,socket);
+			        			BFSNextPeer();
+							}
+						}
 				    	catch (NullPointerException m){
 				    		m.printStackTrace();
 				    		log.severe(this.getName()+ ":"+m.getMessage() + ": Null Pointer Exception during message processing");

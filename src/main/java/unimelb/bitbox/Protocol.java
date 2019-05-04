@@ -97,9 +97,9 @@ public class Protocol
 	 * @param d
 	 * @return
 	 */
-	public static boolean validate(Document d) throws InvalidCommandException
+	public static HostPort validateHS(Document d) throws InvalidCommandException
 	{
-		boolean result = false;
+		HostPort result = null;
 		Configuration.getConfiguration();
 		
 		
@@ -114,11 +114,11 @@ public class Protocol
 				msg = "host is null";
 				throw new InvalidCommandException(msg);
 			}
-			result = true;
+			result = new HostPort(hostPort);
 		}
 		else
 		{
-			result = false;
+			result = null;
 		}
 		
 		return result;

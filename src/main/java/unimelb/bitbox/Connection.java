@@ -117,6 +117,11 @@ public class Connection implements Runnable {
 		}
 	}
 	
+	public boolean isConnected()
+	{
+		return (running && !this.clientSocket.isClosed() && this.clientSocket.isConnected());
+	}
+	
 	private void closeAndClean()
 	{
 		try {
