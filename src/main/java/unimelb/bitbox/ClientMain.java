@@ -24,21 +24,6 @@ public class ClientMain {
 	private Queue<HostPort> globalBFSQueue; 
 	public ConnectionManager connectionManager;
 	
-    //TODO I'm commenting this whole section, it's never used.
-	/*
-	public static void main(String[] args) {
-    	//For Testing
-    	LinkedBlockingQueue<Message> incomingMessagesQ = new LinkedBlockingQueue<>();
-		String serverName = Configuration.getConfigurationValue("advertisedName");
-		int serverPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
-    	HostPort serverHostPort = new HostPort(serverName, serverPort);
-    	
-    	ConnectionManager connectionManager = new ConnectionManager(5, serverHostPort, incomingMessagesQ);
-        //ClientMain agent = new ClientMain(connectionManager);        
-    	
-    }
-    */
-    
 
     public ClientMain(ConnectionManager connectionManager) {
     	this.globalBFSQueue  = new LinkedList<HostPort>(); 
@@ -136,25 +121,15 @@ public class ClientMain {
 	    		
 	    		
 	    		if(socket!=null) {
-	    			//TODO remove the following, only valid for debugging.
-	    			//log.warning(this.getName()+ ":"+"Is Client Socket Connected: " + socket.isConnected());
-		    		//log.severe(this.getName()+ ":"+"Is Cleint Socket Closed: " +socket.isClosed());
-		    		
+	    			
 		    		if (socket.isConnected() && !socket.isClosed()){//if connected to a peer before time out...
 		    			try{
-		    					//TODO remove the following logging in the final version.
-		    					//log.warning(this.getName()+ ":"+"Trying to initiate Handshake_Request");	
 		    					in = new BufferedReader(new InputStreamReader(socket.getInputStream(),"UTF8"));  
 		    					out =  new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(),"UTF8"));
-				        		//TODO remove the following logging in the final version.
-		    					//log.warning(this.getName()+ ":"+"Client Input and Output buffers Successfully Initiated");	
 				        		log.warning(this.getName()+ ":"+"Client Sending Handshake Request to "+pHostPort.toString());
 				        		String hsr = Protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST,
 				        				null);
-				        		// TODO Remove this one. Just testing socket timeout.
-				        		//System.out.println("Client.hsr="+hsr); 
-								//Thread.sleep(1000);
-								out.write(hsr);
+				        		out.write(hsr);
 								out.flush();								 
 				        					        		
 				        		log.info(this.getName()+ ":"+"Client Sent Handshake_Request to "+pHostPort.toString()+ " message sent: " +hsr);
@@ -190,7 +165,7 @@ public class ClientMain {
 				        				log.warning(String.format("Invalid message received: <%s>.\n",rxMsg));
 				        				out.write(Protocol.createMessage(Constants.Command.INVALID_PROTOCOL,"message invalid".split(":")));
 				        				out.flush();
-				        				//closeSocket(out,in,socket);
+				        				closeSocket(out,in,socket);
 				        				log.warning(this.getName()+ ":"+"Message_Invalid: Connection to this peer terminated");
 				        				//Ask team if a new connection needed after message invalid
 				        				BFSNextPeer();

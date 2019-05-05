@@ -27,7 +27,6 @@ public class Protocol
 	
 	/**
 	 * Holds all possible events that can occur 
-	 * @author Tarek Elbeik
 	 *
 	 */
 	

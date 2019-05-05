@@ -45,48 +45,16 @@ public class ConnectionManager implements NetworkObserver {
 		{
 			connection = new Connection(socket, this, source);
 			
-			//TODO GHD: To discuss with Tariq: commented the validation that should ideally be done at the server side
-			//     as otherwise this is not maintain the list of active connections from the client end!
-			//String[] message = new String[1];
-			
-			//message[0] = this.serverHostPort.toDoc().toJson();
-			//connection.send(Protocol.createMessage(Constants.Command.HANDSHAKE_RESPONSE, message));
-			new Thread(connection).start();
 			activePeerConnection.put(connection.peer.toString(),connection);
 			activePeerHostPort.put(connection.peer.toString(),peerHostPort);
 			
+			new Thread(connection).start();
 			
-			//GHD: After connection successfully added we need to start SyncEvents
+			//After connection successfully added we need to start SyncEvents
 			//This is not the ideal way to do it, but just easy to continue in the same manner as external events
 			messageReceived(connection.peer,"{\"command\":\"SYNC_EVENTS\"}");
 			
-			/*
-			if (connection.isHSRReceived())
-			{
-				if (connectedPeers.size()<MAX_NO_OF_CONNECTION)
-				{
-					String[] message = new String[1];
-					
-					message[0] = this.serverHostPort.toDoc().toJson();
-					connection.send(Protocol.createMessage(Constants.Command.HANDSHAKE_RESPONSE, message));
-					new Thread(connection).start();
-					connectedPeers.put(connection.peer.toString(),connection);
-				}
-				else
-				{
-					connection.send(getPeerList().toJson());
-				}
-				
-			}
-			else
-			{
-				String[] message = new String[1];
-				message[0] = "Invalid protocol";
-				connection.send(Protocol.createMessage(Constants.Command.INVALID_PROTOCOL, message));
-				connection.close();
-				
-			}
-			*/
+			
 		}
 	}
 	
@@ -158,7 +126,11 @@ public class ConnectionManager implements NetworkObserver {
 	
 	public boolean isPeerConnected(HostPort peer) {
 		//get the active connection to the specific peer if exists
-		return activePeerHostPort.containsValue(peer);
+		boolean connected=false;
+		synchronized (activePeerHostPort) {
+			connected = activePeerHostPort.containsValue(peer);
+		}
+		return connected;
 		/*
 		//if would be better if we can verify the actual connection
 		Connection conn = activePeerConnection.get(peer.toString());
@@ -192,15 +164,6 @@ public class ConnectionManager implements NetworkObserver {
 			activePeerConnection.remove(connectionID.toString());
 
 			activePeerHostPort.remove(connectionID.toString());
-			/*
-			System.out.printf("failedConnection:.in=%s|.out=%s|clientSocket=%s\n",
-					failedConnection.in,
-					failedConnection.out,
-					failedConnection.clientSocket);
-		    */
-			//if (failedConnection.in!=null) failedConnection.in.close();
-			//if (failedConnection.out!=null)failedConnection.out.close();
-			//if (failedConnection.clientSocket!= null) failedConnection.clientSocket.close();
 		}
 		catch(Exception e) {
 			e.printStackTrace();

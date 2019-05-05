@@ -12,12 +12,8 @@ public class Connection implements Runnable {
 	BufferedWriter out;
 	Socket clientSocket;
 	NetworkObserver networkObserver;
-	//Seems risky to define it at class level
-	//String inBuffer;
 	PeerSource peerSource;
-	//GHD: changed outBuffer to list to cater for multiple parallel send requests
 	ArrayList<OutBuffer> outBuffer;
-	//String outBuffer;
 	Logger log;
 	HostPort peer;   
 	private volatile boolean running = true;
@@ -31,7 +27,6 @@ public class Connection implements Runnable {
 			this.out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(),"UTF8"));
 			this.outBuffer = new ArrayList<OutBuffer>();
 			this.clientSocket = clientSocket;
-			//GHD: Set socket read timeout and keep alive flags
 			this.clientSocket.setKeepAlive(true);
 			this.clientSocket.setSoTimeout(Constants.BITBOX_SOCKET_TIMEOUT);
 			
@@ -107,9 +102,6 @@ public class Connection implements Runnable {
 		
 		catch (Exception e)
 		{
-			//TODO should raise connection close event to the connection manager to remove this from the list
-			//networkObserver.connectionClosed(peer);
-			
 			//close the socket and cleanup
 			log.severe("exception in connection thread "+e.getMessage()+" closing the connection with peer "+peer.toString());
 			closeAndClean();
@@ -142,8 +134,7 @@ public class Connection implements Runnable {
 	 */
 	
 	
-	//GHD: maybe sunchronized is required here
-	public /*synchronized*/ void send(String message, boolean terminateAfterSend)
+	public void send(String message, boolean terminateAfterSend)
 	{
 		log.info(String.format("In connection.send, Peer: %s message: %s", peer.toString(),message));
 		this.outBuffer.add(new OutBuffer(message, terminateAfterSend));

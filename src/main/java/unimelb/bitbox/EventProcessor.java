@@ -243,7 +243,6 @@ public class EventProcessor implements FileSystemObserver, Runnable
 		try {
 			responseMessage = new Message(doc);
 			responseMessage.setFromAddress(senderPeer);
-			//GHD: process all known commands
 			switch (command) 
 			{
 				case FILE_CREATE_REQUEST:
@@ -345,35 +344,6 @@ public class EventProcessor implements FileSystemObserver, Runnable
 		
 		sendResponse(message);
 			
-			//GHD: commented below as I don't think it is needed
-			/*
-			LinkedList<String> dirs = new LinkedList<String>();
-			//populate the Queue with directories separated by "/"
-			for (String dir: pathName.split("/"))
-			{
-				dirs.add(dir);
-			}
-			try
-			{
-				boolean isCreated = true;
-				String dir="";
-				
-				//Creating directories starting with leaves, stops if creating any sub-folder fails.
-				while (!dirs.isEmpty()&isCreated)
-				{
-					dir += "/"+ dirs.pop();
-					isCreated = fileSystemManager.makeDirectory(dir);
-				}
-			}
-			catch (Exception e)
-			{
-				e.printStackTrace();
-			}
-		}
-		else
-		{
-			System.out.println("Invalid path!");
-		}*/
 	}
 	
 	private void processIncomingDirectoryDeleteRequest(Message message) {
@@ -464,7 +434,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 				try {
 					if (fileSystemManager.fileNameExists(pathName))
 					{
-						//GHD if old dated file exists, modify file instead of directly rejecting it
+						// if old dated file exists, modify file instead of directly rejecting it
 						boolean reject = true;
 						synchronized(this) {
 							String fullPathName=path+FileSystems.getDefault().getSeparator()+separatorsToSystem(pathName);
@@ -867,7 +837,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 	}
 	
 	private void sendResponse(Message responseMessage) {
-		//GHD: After processing send the response message back to peer
+		//After processing send the response message back to peer
 		try {
 			connectionManager.sendToPeer(responseMessage.getFromAddress(), responseMessage, false);
 		}
