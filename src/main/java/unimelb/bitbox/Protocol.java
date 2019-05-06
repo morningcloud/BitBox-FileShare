@@ -1,11 +1,15 @@
 package unimelb.bitbox;
 
-import java.util.LinkedList;
+
+
 
 import unimelb.bitbox.util.Constants;
 import unimelb.bitbox.util.Document;
-import unimelb.bitbox.util.Constants.Command;
+import unimelb.bitbox.util.Configuration;
+import unimelb.bitbox.util.HostPort;
+import java.util.ArrayList;
 
+import unimelb.bitbox.Err.*;
 public class Protocol 
 {
 	
@@ -23,47 +27,68 @@ public class Protocol
 	
 	/**
 	 * Holds all possible events that can occur 
-	 * @author Tarek Elbeik
 	 *
 	 */
-	public enum EVENT
+	
+	
+	public static String createRequest(Constants.Command requestType)
 	{
-		FILE_CREATE_REQUEST,
-		FILE_DELETE_REQUEST,
-		FILE_BYTES_REQUEST,
-		FILE_MODIFY_REQUEST,
-		DIRECTORY_CREATE_REQUEST,
-		DIRECTORY_DELETE_REQUEST	
+		Document requestDocument = new Document();
+		
+		return requestDocument.toJson();
 	}
-	
-	Constants constants = new Constants();
-	
-	
-	
-	public <T> String createMessage(Constants.Command command, LinkedList<T> args)
+	public static String createMessage(Constants.Command messageType, String[] args)
 	{
-		Document message = null;
-		if (command == Constants.Command.INVALID_PROTOCOL)
+		Document response = new Document();
+		
+		switch (messageType)
 		{
-			 message = new Document();
-			 message.append("command", "INVALID_MESSAGE");
-			 message.append("message", "message must contain a command field as string");
-		}
-		if (command == Constants.Command.HANDSHAKE_REQUEST)
-		{
-			 message = new Document();
-			 Document subMessage = new Document();
-			 
-			 message.append("command", "HANDSHAKE_REQUEST");
-			 subMessage.append("host", Peer.serverName); // Modified for static reference
-			 subMessage.append("port", Peer.serverPort); // Modified for static reference
-			 message.append("hostPort", subMessage);
-		}
-		if (command == Constants.Command.CONNECTION_REFUSED)
-		{
+	
+			/**
+			 * Arguments should be structured as:
+			 * args[0] -->
+			 * args[1] -->
+			 * ...
+			 */
+			case HANDSHAKE_RESPONSE:
+			{
+				response.append("command", messageType.toString());
+				response.append("hostPort", Document.parse(args[0]));
+				break;
+			}
 			
+			/**
+			 * Arguments should be structured as:
+			 * args[0] --> Message to be sent; why the protocol is invalid
+			 * args[1] -->
+			 * ...
+			 */
+			case INVALID_PROTOCOL:
+			{
+				 response.append("command", "INVALID_PROTOCOL");
+				 response.append("message", args[0]);
+				 break;
+			}
+			
+			case HANDSHAKE_REQUEST:
+			{	
+				 Configuration.getConfiguration();
+				 HostPort serverHostPort = new HostPort(Configuration.getConfigurationValue("advertisedName"),
+						 Integer.parseInt(Configuration.getConfigurationValue("port")));
+				 
+				 response.append("command", "HANDSHAKE_REQUEST");								 
+				 response.append("hostPort", serverHostPort.toDoc());
+				 break;
+			}
+			default: 
+			{
+				 response.append("command", "INVALID_PROTOCOL");
+				 response.append("message", args[0]);
+				 break;
+			}
 		}
-		return message.toJson();
+		
+		return response.toJson() + "\n"; //appended to include newline character at message response always
 	}
 	
 	/**
@@ -71,23 +96,30 @@ public class Protocol
 	 * @param d
 	 * @return
 	 */
-	public static boolean validate(Document d)
+	public static HostPort validateHS(Document d) throws InvalidCommandException
 	{
-		boolean result = true;
-		if (d.get("command").equals("HANDSHAKE_REQUEST"))
+		HostPort result = null;
+		Configuration.getConfiguration();
+		
+		
+		//One validation scenario, more need to be added.
+		String command = d.getString("command");
+		String msg;
+		if (command.equals("HANDSHAKE_REQUEST"))
 		{
 			Document hostPort = (Document) d.get("hostPort");
-			if (
-					(hostPort.getString("host").equals(null))|!((hostPort.getLong("port"))>=1023))
+			if ((hostPort.getString("host").equals(null)))
 			{
-				result = false;
-				
+				msg = "host is null";
+				throw new InvalidCommandException(msg);
 			}
+			result = new HostPort(hostPort);
 		}
 		else
 		{
-			result = false;
+			result = null;
 		}
+		
 		return result;
 	}
 	
@@ -119,14 +151,15 @@ public class Protocol
 	{
 		try {				
 				boolean result = true;
-				if (d.get("command").equals("HANDSHAKE_REFUSED"))
+				if (d.get("command").equals("CONNECTION_REFUSED"))
 				{
-					Document hostPort = (Document) d.get("hostPort");
-					if ((hostPort.getString("host").equals(null))|!((hostPort.getLong("port"))>=1023)){
+					System.out.println();
+					ArrayList<Document> hostPort = (ArrayList<Document>) d.get("peers");
+					//if ((hostPort.getString("host").equals(null))|!((hostPort.getLong("port"))>=1023)){
 					
-						result = false;
+						//result = false;
 						
-					}
+				//	}
 				}
 				else {
 				
