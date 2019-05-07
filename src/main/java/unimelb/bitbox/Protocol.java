@@ -70,6 +70,16 @@ public class Protocol
 				 break;
 			}
 			
+			case AUTH_REQUEST:
+				 response.append("command", "AUTH_REQUEST");
+				 response.append("identity", args[0]);
+				 
+			case AUTH_RESPONSE:
+				 response.append("command", "AUTH_RESPONSE");
+				 response.append("AES128", args[0]);
+				 response.append("status", args[1]);
+				 response.append("message", args[2]);
+			
 			case HANDSHAKE_REQUEST:
 			{	
 				 Configuration.getConfiguration();
@@ -91,6 +101,12 @@ public class Protocol
 		return response.toJson() + "\n"; //appended to include newline character at message response always
 	}
 	
+	public static String validateAuthRequest(Document d)
+	{
+		String identity = d.getString("identity");
+		
+		return identity;
+	}
 	/**
 	 * Validates a protocol message received according to its type.
 	 * @param d

@@ -29,10 +29,18 @@ public class Constants{
 		DIRECTORY_DELETE_REQUEST, 
 		DIRECTORY_DELETE_RESPONSE,
 		FILE_BYTES_REQUEST, 
+		AUTH_REQUEST,
+		AUTH_RESPONSE,
+		LIST_PEERS_REQUEST,
+		LIST_PEERS_RESPONSE,
+		CONNECT_PEER_REQUEST,
+		CONNECT_PEER_RESPONSE,
+		DISCONNECT_PEER_REQUEST,
+		DISCONNECT_PEER_RESPONSE,
 		FILE_BYTES_RESPONSE,
 		SYNC_EVENTS;
-		
-	    public static Command fromString(String cmd)
+	    
+		public static Command fromString(String cmd)
 	    {
 	        //look for matching abbreviation and return the equivalent suit
 	        for(Command command : Command.values())

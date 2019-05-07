@@ -17,8 +17,8 @@ import unimelb.bitbox.util.Constants.PeerSource;
 import unimelb.bitbox.util.*;
 
 
-public class ServerMain implements Runnable {
-	private static Logger log = Logger.getLogger(ServerMain.class.getName());
+public class ServerMain2 implements Runnable {
+	private static Logger log = Logger.getLogger(ServerMain2.class.getName());
 	protected FileSystemManager fileSystemManager;
 	public ConnectionManager connectionManager;
 	final int SOCKET_TIMEOUT = 100000;	//Timeout for server socket, 3 seconds
@@ -33,11 +33,11 @@ public class ServerMain implements Runnable {
 	HostPort serverHostPort;
 
 	
-	public ServerMain(ConnectionManager connectionManager) throws NumberFormatException, IOException  {
+	public ServerMain2(ConnectionManager connectionManager) throws NumberFormatException, IOException  {
 		
 		this.serverName = Configuration.getConfigurationValue("advertisedName");
 		this.clientPort = Integer.parseInt(Configuration.getConfigurationValue("clientPort"));
-		this.serverPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
+		//this.serverPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
 		serverHostPort = new HostPort(this.serverName,this.serverPort);
 		this.connectionManager = connectionManager;
 	}
@@ -53,7 +53,8 @@ public class ServerMain implements Runnable {
 		//BufferedWriter out = null;
 		try 
 		{
-			this.serverSocket = new ServerSocket(this.serverPort);
+			
+			this.serverSocket = new ServerSocket(this.clientPort);
 			log.info("Server started, listening at "+serverPort);
 			while (true)
 			{
