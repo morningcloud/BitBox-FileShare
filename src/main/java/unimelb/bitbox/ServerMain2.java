@@ -72,12 +72,15 @@ public class ServerMain2 implements Runnable {
 					out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(),"UTF8"));
 					Document response;
 					String inmsg = in.readLine();
-					Document handshakeMsg = Document.parse(inmsg);
+					Document authRequest = Document.parse(inmsg);
+					//Document handshakeMsg = Document.parse(inmsg);
 					try
 					{
 						HostPort connectingPeer = null;
 						//Validates the HANDSHAKE_REQUEST and get the host of the peer... throws exception if invalid.
-						connectingPeer = Protocol.validateHS(handshakeMsg);
+						//TODO I've commented the following line to work on project 2
+						connectingPeer = null; //Protocol.validateHS(handshakeMsg);
+						
 						if (connectingPeer != null && connectionManager.isPeerConnected(connectingPeer)) {
 							response = new Document();
 							response.append("command", "INVALID_PROTOCOL");

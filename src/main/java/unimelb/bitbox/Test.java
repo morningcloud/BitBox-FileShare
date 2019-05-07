@@ -22,7 +22,13 @@ public class Test
 
 		
 		Configuration.getConfiguration();
+		String[] msgArgs = {"tel@DESKTOP-MG41RRU"};
+		String msg = Protocol.createMessage(Constants.Command.AUTH_REQUEST,msgArgs);
+		String key = Protocol.validateAuthRequest(Document.parse(msg));
+		System.out.printf("identity=%s\n",key);
 		//String[] auth = Configuration.getConfigurationValue("authorized_keys").split(" ");
+		
+/*		
 		HashMap<String,ArrayList<String>> authKeys = Configuration.getAuthKeys();//Configuration.getConfigurationValue("authorized_keys");
 		for (String identity: authKeys.keySet())
 		{
@@ -32,6 +38,7 @@ public class Test
 				System.out.printf("\tidentityKey=%s\n",key);
 			}
 		}
+*/		
 	}
 
 }

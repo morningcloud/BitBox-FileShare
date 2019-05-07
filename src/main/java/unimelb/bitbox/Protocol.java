@@ -4,11 +4,12 @@ package unimelb.bitbox;
 
 
 import unimelb.bitbox.util.Constants;
+
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.HostPort;
 import java.util.ArrayList;
-
+import java.util.HashMap;
 import unimelb.bitbox.Err.*;
 public class Protocol 
 {
@@ -73,12 +74,14 @@ public class Protocol
 			case AUTH_REQUEST:
 				 response.append("command", "AUTH_REQUEST");
 				 response.append("identity", args[0]);
+				 break;
 				 
 			case AUTH_RESPONSE:
 				 response.append("command", "AUTH_RESPONSE");
 				 response.append("AES128", args[0]);
 				 response.append("status", args[1]);
 				 response.append("message", args[2]);
+				 break;
 			
 			case HANDSHAKE_REQUEST:
 			{	
@@ -104,8 +107,14 @@ public class Protocol
 	public static String validateAuthRequest(Document d)
 	{
 		String identity = d.getString("identity");
-		
-		return identity;
+		HashMap<String,ArrayList<String>> authorisedPeers = new HashMap<String,ArrayList<String>>();
+		authorisedPeers = Configuration.getAuthKeys();
+		String authKey=null;
+		if (authorisedPeers.get(identity)!=null)
+		{
+			authKey = authorisedPeers.get(identity).get(0);
+		}
+		return authKey;
 	}
 	/**
 	 * Validates a protocol message received according to its type.
