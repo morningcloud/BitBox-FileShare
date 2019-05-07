@@ -1,8 +1,10 @@
 package unimelb.bitbox.util;
 
 import java.io.FileInputStream;
+import java.util.Scanner;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,6 +37,37 @@ public class Configuration {
         } catch (IOException e) {
             log.warning("Could not read file " + CONFIGURATION_FILE);
         }
+    }
+    
+    public static HashMap<String,ArrayList<String>> getAuthKeys()
+    {
+        HashMap<String,ArrayList<String>> authKeys=new HashMap<String,ArrayList<String>>();
+        //String[2]; // = new String[2];
+    	try (InputStream inputStream = new FileInputStream(CONFIGURATION_FILE);
+    			Scanner fileReader = new Scanner(inputStream);) 
+    	{
+    		while (fileReader.hasNext())
+    		{
+    			String line = fileReader.nextLine();
+    			//System.out.println("line num="+line.substring(0,4));
+    			if (line.substring(0,4).toLowerCase().equals("auth"))
+    			{
+    				String[] keys = line.substring(line.indexOf("=")+1).trim().split(",");
+    				ArrayList<String> idKeys=null;// = 
+    				for (String key: keys)
+    				{
+    					String identity = key.substring(key.lastIndexOf(" ")+1);
+    					String idKey = key.substring(0,key.lastIndexOf(" "));
+    					idKeys = (authKeys.get(identity)==null?new ArrayList<String>():authKeys.get(identity));
+    					idKeys.add(idKey);
+    					authKeys.put(identity,idKeys);
+    				}
+    			}
+    		}
+        } catch (IOException e) {
+            log.warning("Could not read file " + CONFIGURATION_FILE);
+        }
+    	return authKeys;
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
