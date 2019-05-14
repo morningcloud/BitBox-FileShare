@@ -39,34 +39,15 @@ public class Configuration {
         }
     }
     
-    public static HashMap<String,ArrayList<String>> getAuthKeys()
+    public static HashMap<String,String> getAuthKeys()
     {
-        HashMap<String,ArrayList<String>> authKeys=new HashMap<String,ArrayList<String>>();
-        //String[2]; // = new String[2];
-    	try (InputStream inputStream = new FileInputStream(CONFIGURATION_FILE);
-    			Scanner fileReader = new Scanner(inputStream);) 
+    	HashMap<String,String> authKeys=new HashMap<String,String>();
+    	String[] strKeys = getConfigurationValue("authorized_keys").split(",");
+    	for (String strKey: strKeys)
     	{
-    		while (fileReader.hasNext())
-    		{
-    			String line = fileReader.nextLine();
-    			//System.out.println("line num="+line.substring(0,4));
-    			if (line.substring(0,4).toLowerCase().equals("auth"))
-    			{
-    				String[] keys = line.substring(line.indexOf("=")+1).trim().split(",");
-    				ArrayList<String> idKeys=null;// = 
-    				for (String key: keys)
-    				{
-    					String identity = key.substring(key.lastIndexOf(" ")+1);
-    					String idKey = key.substring(0,key.lastIndexOf(" "));
-    					idKeys = (authKeys.get(identity)==null?new ArrayList<String>():authKeys.get(identity));
-    					idKeys.add(idKey);
-    					authKeys.put(identity,idKeys);
-    				}
-    			}
-    		}
-        } catch (IOException e) {
-            log.warning("Could not read file " + CONFIGURATION_FILE);
-        }
+    		String identity = strKey.substring(strKey.lastIndexOf(" ")+1);
+    		authKeys.put(identity,strKey);
+    	}
     	return authKeys;
     }
 

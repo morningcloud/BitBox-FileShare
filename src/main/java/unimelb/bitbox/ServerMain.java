@@ -8,8 +8,19 @@ import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.security.Key;
+import java.security.KeyFactory;
+import java.security.spec.KeySpec;
+
 import unimelb.bitbox.Err.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.logging.Logger;
+
+
+
 import java.net.InetAddress;
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.FileSystemManager;
@@ -31,6 +42,7 @@ public class ServerMain implements Runnable {
 	private int serverPort;
 	private int clientPort;
 	HostPort serverHostPort;
+	HashMap<String,Key> authorisedKeys;
 
 	
 	public ServerMain(ConnectionManager connectionManager) throws NumberFormatException, IOException  {
@@ -40,6 +52,33 @@ public class ServerMain implements Runnable {
 		this.serverPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
 		serverHostPort = new HostPort(this.serverName,this.serverPort);
 		this.connectionManager = connectionManager;
+		loadAuthorisedKeys();
+		for (String identity: this.authorisedKeys.keySet())
+		{
+				System.out.println("id: "+identity+" key: "+authorisedKeys.get(identity));
+		}
+	}
+	
+	private void loadAuthorisedKeys()
+	{
+		Configuration.getConfiguration();
+		HashMap<String,String> authKeys = Configuration.getAuthKeys();
+		this.authorisedKeys = new HashMap<String,Key>();
+		for (String identity: authKeys.keySet())
+		{
+			OpenSSHToRSAPubKeyConverter keyConverter = new OpenSSHToRSAPubKeyConverter(authKeys.get(identity).getBytes());
+			try
+			{
+				KeySpec spec = keyConverter.convertToRSAPublicKey();
+				KeyFactory kf = KeyFactory.getInstance("RSA");
+				Key identityRSAKey = kf.generatePublic(spec);
+				this.authorisedKeys.put(identity, identityRSAKey);
+			}
+			catch (Exception e)
+			{
+				log.warning("Key couldn't be converted..check key format");
+			}
+		}
 	}
   
 
@@ -71,6 +110,44 @@ public class ServerMain implements Runnable {
 					out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(),"UTF8"));
 					Document response;
 					String inmsg = in.readLine();
+					//TODO Tarek: Change 1:  Checking on incoming message if it's coming from Peer or Client.
+					
+					Document receivedMsg = Document.parse(inmsg);
+					try 
+					{
+						String command = receivedMsg.getString("command");
+						if (command.equals("AUTH_REQUEST"))
+						{
+							String identity = receivedMsg.getString("identity");
+							Key idPubKey = this.authorisedKeys.get(identity);
+							if (idPubKey==null)
+							{
+								String[] args = {null,"false"};
+								String responseMsg = Protocol.createMessage(Constants.Command.AUTH_RESPONSE, args);
+								out.write(responseMsg);
+								out.flush();
+								clientSocket.close();
+							}
+							else
+							{
+								//Generate secret key using AES128
+								//Encrypt the secret key using the client's public key above
+								//Encode all in base64
+								//Call Protocol.createMessage(auth response).
+								//Keep connection open awaiting for next command.
+								//Disconnect as soon as the latter request is fulfilled.
+								
+							}
+						}
+						
+					}
+					catch (Exception e)
+					{
+						e.printStackTrace();
+					}
+					
+					//TODO End of Change 1
+					
 					Document handshakeMsg = Document.parse(inmsg);
 					try
 					{

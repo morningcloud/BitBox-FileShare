@@ -45,6 +45,51 @@ public class Protocol
 		switch (messageType)
 		{
 	
+		/**
+		 * list_peers
+		 * args[0] --> N/A
+		 * args[1] --> N/A
+		 */
+		
+		case list_peers:
+		{
+			response.append("command", Constants.Command.LIST_PEERS_REQUEST.toString());
+			break;
+			
+		}
+		
+		case connect_peer:
+		{
+			/**
+			 * connect_peer
+			 * args[0] --> host
+			 * args[1] --> port
+			 */
+
+			response.append("command", Constants.Command.CONNECT_PEER_REQUEST.toString());
+			response.append("host", args[0]);
+			response.append("port", args[1]);
+			
+			break;
+			
+		}
+		case disconnect_peer:
+		{
+			/**
+			 * disconnect_peer
+			 * args[0] --> host
+			 * args[1] --> port
+			 */
+
+			response.append("command", Constants.Command.DISCONNECT_PEER_REQUEST.toString());
+			response.append("host", args[0]);
+			response.append("port", args[1]);
+			
+			break;
+			
+		}
+		
+
 			/**
 			 * Arguments should be structured as:
 			 * args[0] -->
@@ -72,17 +117,29 @@ public class Protocol
 			}
 			
 			case AUTH_REQUEST:
+			{
+				 /*
+				  * args[0] --> identity
+				 */
 				 response.append("command", "AUTH_REQUEST");
 				 response.append("identity", args[0]);
 				 break;
+			}
 				 
 			case AUTH_RESPONSE:
+			{
+				 /* authentication response.
+				 * args[0] --> AES128 Base64 encoded, encrypted secret key using the requestor's public key
+				 * args[1] --> true/false
+				 */
+				 boolean status = (args[1].equals("true"))?true:false;
 				 response.append("command", "AUTH_RESPONSE");
-				 response.append("AES128", args[0]);
-				 response.append("status", args[1]);
-				 response.append("message", args[2]);
+				 if (args[0]!=null)response.append("AES128", args[0]);
+				 response.append("status", status);
+				 response.append("message", (status==true)?"public key found":"public key not found");
+				 
 				 break;
-			
+			}
 			case HANDSHAKE_REQUEST:
 			{	
 				 Configuration.getConfiguration();
@@ -104,18 +161,6 @@ public class Protocol
 		return response.toJson() + "\n"; //appended to include newline character at message response always
 	}
 	
-	public static String validateAuthRequest(Document d)
-	{
-		String identity = d.getString("identity");
-		HashMap<String,ArrayList<String>> authorisedPeers = new HashMap<String,ArrayList<String>>();
-		authorisedPeers = Configuration.getAuthKeys();
-		String authKey=null;
-		if (authorisedPeers.get(identity)!=null)
-		{
-			authKey = authorisedPeers.get(identity).get(0);
-		}
-		return authKey;
-	}
 	/**
 	 * Validates a protocol message received according to its type.
 	 * @param d
