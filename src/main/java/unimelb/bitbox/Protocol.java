@@ -125,6 +125,15 @@ public class Protocol
 				 response.append("identity", args[0]);
 				 break;
 			}
+			
+			case LIST_PEERS_REQUEST:
+			{
+				 /*
+				  * args[0] --> identity
+				 */
+				 response.append("command", "LIST_PEERS_REQUEST");
+				 break;
+			}
 				 
 			case AUTH_RESPONSE:
 			{

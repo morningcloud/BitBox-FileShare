@@ -1,59 +1,159 @@
 package unimelb.bitbox;
 
 import java.util.logging.Logger;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.Socket;
 
-import unimelb.bitbox.util.Constants;
-
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import unimelb.bitbox.util.*;
 public class Client
 {
 	private static Logger log = Logger.getLogger(Peer.class.getName());
+	private static String command="";
+	private static HostPort server;
+	private static HostPort peer;
+	private static Socket socket;
+	private static BufferedWriter out; 
+	private static BufferedReader in; 
 	public static void main(String[] args)
 	{
-		String command="";
-		String server="";
-		String peer="";
+		String[] myArgs = {"-c","list_peers","-s","localhost:8111"};
+		//parse(args);
+		parse(myArgs);
+		authenticate();
+		System.out.println(createRequest());
 		
 		//This class should open a socket and connect it to the received server
 		//details from the command line.
-		
-		
-		//The minimum number of arguments expected is 4
-		if (args.length>=4)
+	}
+	
+	private static boolean authenticate()
+	{
+		boolean status = false;
+		if (server!=null)
 		{
-			//Checking if first argument is the command flag
-			if (args[0].equals("-c"))
+			try
 			{
-				//Checking that the command entered is legal
-				//TODO Need to flesh out the methods below.
-				command = args[1];
-				if (command.equals(Constants.Command.list_peers.toString()))
-				{
-					System.out.println("suplied command is list pleers.");
-				}
-				else if (command.equals(Constants.Command.connect_peer.toString()))
-				{
-					System.out.println("suplied command is connect peer.");
-				}
-				else if (command.equals(Constants.Command.disconnect_peer.toString()))
-				{
-					System.out.println("suplied command is disconnect peer.");
-				}
-				else
-				{
-					log.severe(String.format("unknown command %s. valid commands are (list_peers,connect_peer,disconnect_peer). Exiting Client program\n",args[1]));
-					System.exit(10);
-				}
+				socket = new Socket(server.host,server.port);
+				in = new BufferedReader(new InputStreamReader(socket.getInputStream(),"UTF8"));  
+				out =  new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(),"UTF8"));
 				
+				log.warning("Client Sending Handshake Request to "+server.toString());
+				 /*
+				  * args[0] --> identity
+				 */
+				
+				//TODO identity needs to be either read from the private key or as a CL argument.
+				String identity = "tel@DESKTOP-MG41RRU";
+				String[] msgArgs = {identity};
+				String authRequest = Protocol.createMessage(Constants.Command.AUTH_REQUEST,msgArgs);
+				System.out.println("authRequest="+authRequest);
+        		out.write(authRequest);
+				out.flush();								 
+        					        		
+        		log.info("Client Sent Handshake_Request to "+server.toString()+ " message sent: " +authRequest);
+        		Document authResponse =  Document.parse(in.readLine());
+        		System.out.println("Received response: "+authResponse.toJson());
+        		String[] reqArgs = {"",""};
+        		String request = Protocol.createMessage(Constants.Command.LIST_PEERS_REQUEST,reqArgs );
+        		out.write(request);
+				out.flush();	
+				Document reply =  Document.parse(in.readLine());
+				System.out.println(reply.toJson());
+        		
+        		//TODO must construct command message and write it to the socket.
+				socket.close();
 			}
-			else
+			catch (Exception e)
 			{
-				log.severe(String.format("unknown argument %s. Expective -c <command>. Exiting Client program\n",args[0]));
-				System.exit(10);
+				e.printStackTrace();
 			}
+			
 		}
 		
-
+		return status;
 	}
+	private static String createRequest()
+	{
+		String request=""; 
+		String reply=""; 
+		switch (command)
+		{
+		case "list_peers":
+		{
+			String[] reqArgs = {"",""};
+			request = Protocol.createMessage(Constants.Command.LIST_PEERS_REQUEST, reqArgs);
+			break;
+		}
+		
+		}
+		if (socket!=null && !socket.isClosed())
+		{
+			try
+			{
+				out.write(request);
+				out.flush();
+				reply = in.readLine();
+				
+			} catch (IOException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			finally
+			{
+				if (socket!=null)
+				{
+					try
+					{
+						socket.close();
+					}
+					catch (Exception e)
+					{
+						e.printStackTrace();
+					}
+				}
+			}
+			
+		}
+			
+		return reply;
+	
+	}
+	private static void parse(String[] args)
+	{
+		CLArgs clientArgs = new CLArgs();
+		
+		CmdLineParser parser = new CmdLineParser(clientArgs);
+		try
+		{
+			//Parse the arguments
+			parser.parseArgument(args);
+			
+			//After parsing, the fields in argsBean have been updated with the given
+			//command line arguments
+			command = clientArgs.getCommand();
+			server = new HostPort(clientArgs.getServerHostPort());
+			peer = new HostPort(clientArgs.getServerHostPort());
+			
+		}
+		
+		catch (CmdLineException e)
+		{
+			System.err.println(e.getMessage());
+			
+			//Print the usage to help the user understand the arguments expected
+			//by the program
+			parser.printUsage(System.err);
+		}
+		
+	}
+	
 	
 	 
 
