@@ -56,6 +56,10 @@ public class ServerMain implements Runnable {
 		loadAuthorisedKeys();
 	}
 	
+	/**
+	 * Reads authorized_keys property, converts keys to PKCS#8 that is readable by java
+	 * and creates corresponding Key objects, load them in HashMap along with the key's identity  
+	 */
 	private void loadAuthorisedKeys()
 	{
 		Configuration.getConfiguration();

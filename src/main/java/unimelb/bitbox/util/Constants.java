@@ -7,7 +7,8 @@ public class Constants{
 	public static final long BITBOX_THREAD_SLEEP_TIME = 10; //Thread Sleep time in milliseconds
 	public static final long BITBOX_CONNECTION_THREAD_SLEEP_TIME = 1000; //Thread Sleep time in milliseconds
 	public static final long BITBOX_CONNECTION_ATTEMPT_MAX_COUNT = 2; //No of connection attempts to another peer if that connection was not established from first attempt
-	public static final String SECRET_KEY_ALGORITHM = "AES_256";
+	public static final String SECRET_KEY_ALGORITHM = "AES";
+	public static final String PRIVATE_KEY_FILE_NAME = "bitboxclient_rsa";
 	
 	public enum State {
 	
@@ -77,5 +78,11 @@ public class Constants{
 	{
 		CLIENT,
 		SERVER
+	}
+	
+	public enum CryptoUser
+	{
+		CLIENT,
+		PEER
 	}
 }

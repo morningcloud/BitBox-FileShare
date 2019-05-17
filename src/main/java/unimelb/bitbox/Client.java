@@ -26,7 +26,10 @@ public class Client
 		//parse(args);
 		parse(myArgs);
 		authenticate();
-		System.out.println(createRequest());
+		Crypto crypto = new Crypto();
+		
+		
+		//System.out.println(createRequest());
 		
 		//This class should open a socket and connect it to the received server
 		//details from the command line.
@@ -34,6 +37,7 @@ public class Client
 	
 	private static boolean authenticate()
 	{
+		//TODO handle java.net.ConnectException
 		boolean status = false;
 		if (server!=null)
 		{
@@ -60,7 +64,7 @@ public class Client
         		Document authResponse =  Document.parse(in.readLine());
         		System.out.println("Received response: "+authResponse.toJson());
         		String[] reqArgs = {"",""};
-        		String request = Protocol.createMessage(Constants.Command.LIST_PEERS_REQUEST,reqArgs );
+        		String request = Protocol.createMessage(Constants.Command.LIST_PEERS_REQUEST,reqArgs);
         		out.write(request);
 				out.flush();	
 				Document reply =  Document.parse(in.readLine());
