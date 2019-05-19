@@ -50,6 +50,14 @@ import java.util.Arrays;
  * Reads a key file in the new OpenSSH format.
  * The format is described in the following document: https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.key
  */
+/**
+ * This class is copied from:
+ * https://github.com/hierynomus/sshj/blob/master/src/main/java/com/hierynomus
+ * /sshj/userauth/keyprovider/OpenSSHKeyV1KeyFile.java
+ * It has been slightly modified to fit our purpose.
+ * @author Tarek Elbeik
+ *
+ */
 public class OpenSSHKeyV1KeyFile extends BaseFileKeyProvider {
     //private static final Logger logger = LoggerFactory.getLogger(OpenSSHKeyV1KeyFile.class);
     private static final String BEGIN = "-----BEGIN ";

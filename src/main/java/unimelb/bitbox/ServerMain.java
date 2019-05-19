@@ -43,6 +43,7 @@ public class ServerMain implements Runnable {
 	private int clientPort;
 	HostPort serverHostPort;
 	HashMap<String,Key> authorisedKeys;
+	Crypto crypto;
 
 	
 	public ServerMain(ConnectionManager connectionManager) throws NumberFormatException, IOException  
@@ -97,7 +98,7 @@ public class ServerMain implements Runnable {
 			{
 				clientSocket = this.serverSocket.accept();
 				//TODO remove comment from the following line, reinstate socket timeout
-				//clientSocket.setSoTimeout(Constants.BITBOX_INCOMING_SOCKET_TIMEOUT);
+				clientSocket.setSoTimeout(Constants.BITBOX_INCOMING_SOCKET_TIMEOUT);
 				/**
 				 * The following block validates the HANDSHAKE_REQUEST and checks the server's capacity.
 				 */
@@ -118,9 +119,11 @@ public class ServerMain implements Runnable {
 						String command = receivedMsg.getString("command");
 						if (command.equals("AUTH_REQUEST"))
 						{
+							
 							String identity = receivedMsg.getString("identity");
 							log.info(String.format("Client %s, identity: %s requesting authentication",clientSocket.getInetAddress().getHostName(),identity));
 							Key idPubKey = this.authorisedKeys.get(identity);
+							
 							if (idPubKey==null)
 							{
 								log.info(String.format("Client %s key not found. Sending authentication response and closing socket.",identity));
@@ -134,15 +137,23 @@ public class ServerMain implements Runnable {
 							else
 							{
 								log.info(String.format("Client %s key found..sending authentication response and waiting for client's command",identity));
-								String[] args = {idPubKey.getFormat(),"true"};
+								this.crypto  = new Crypto(idPubKey,Constants.CryptoUser.PEER);
+								String encodedKey = this.crypto.getEncodedSessionKey();
+								
+								String[] args = {encodedKey,"true"};
 								String responseMsg = Protocol.createMessage(Constants.Command.AUTH_RESPONSE, args);
+								log.info(responseMsg);
 								out.write(responseMsg);
 								out.flush();
 								
+								/**
+								 * The following part starts using secure communication, all JSON messages are encrypted
+								 * and wrapped in "payload".
+								 */
 								//Receiving client request.
 								inmsg = in.readLine();
-								log.info("received request: "+inmsg);
-								Document reply = processClientRequest(inmsg);
+								Document clientRequest = Document.parse(inmsg);
+								Document reply = processClientRequest(clientRequest);
 								log.info("sending reply: "+reply.toJson());
 								out.write(reply.toJson()+"\n");
 								out.flush();
@@ -281,9 +292,11 @@ public class ServerMain implements Runnable {
 
 	}
 	
-	private Document processClientRequest(String clientRequest)
+	private Document processClientRequest(Document clientRequest)
 	{
-		Document clientReqDocument = Document.parse(clientRequest);
+		String encryptedRequest = clientRequest.getString("payload");
+		String decryptedRequest = this.crypto.decrypt(encryptedRequest);
+		Document clientReqDocument = Document.parse(decryptedRequest);
 		Document response = new Document();
 		String command = clientReqDocument.getString("command");
 		switch (command)
@@ -320,7 +333,9 @@ public class ServerMain implements Runnable {
 		}
 		
 		}
-		return response;
-			
+		String encryptedResponse = this.crypto.encrypt(response.toJson());
+		Document payload = new Document();
+		payload.append("payload", encryptedResponse);
+		return payload;
 	}
 }

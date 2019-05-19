@@ -6,6 +6,9 @@ import unimelb.bitbox.util.*;
 import java.util.Scanner;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.io.File;
 
 import javax.crypto.BadPaddingException;
@@ -23,6 +26,8 @@ import java.security.spec.KeySpec;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import java.util.ArrayList;
 import java.util.Base64;
@@ -39,67 +44,28 @@ import org.bouncycastle.crypto.encodings.*;
 import org.bouncycastle.jcajce.provider.asymmetric.rsa.*;
 public class Test
 {
-	public static void main(String[] args)
+	public static void main(String[] args) throws Exception
 	{
-		loadAuthorisedKeys();
+		String t1 = "LIST_PEERS_REQUEST";
+		HostPort hp = new HostPort("localshit:8999");
 		
-	}
-	
-	private static void loadAuthorisedKeys()
-	{
-		Configuration.getConfiguration();
-		HashMap<String,String> authKeys = Configuration.getAuthKeys();
-		
-		String msg = "This message should go dark!";
-		Key identityRSAKey=null;
-		
-		for (String identity: authKeys.keySet())
+		Document d = hp.toDoc();
+		int port = d.getInteger("port");
+		System.out.println(port);
+		System.out.println(d.toString());
+		switch (t1)
 		{
-			OpenSSHToRSAPubKeyConverter keyConverter = new OpenSSHToRSAPubKeyConverter(authKeys.get(identity).getBytes());
-			try
-			{
-				KeySpec spec = keyConverter.convertToRSAPublicKey();
-				KeyFactory kf = KeyFactory.getInstance("RSA");
-				identityRSAKey = kf.generatePublic(spec);
-			}
-			catch (Exception e)
-			{
-				e.printStackTrace();
-			}
+		case "LIST_PEERS_REQUEST":
+		{
+			System.out.println("alright");
+			break;
 		}
 		
-		try
+		case "EMM":
 		{
-			Cipher c = Cipher.getInstance("RSA");
-			c.init(Cipher.ENCRYPT_MODE, identityRSAKey);
-			c.update(msg.getBytes());
-			byte[] encMsg = c.doFinal();
-			String encodedMsg = Base64.getEncoder().encodeToString(encMsg);
-			System.out.println(encodedMsg);
-		} catch (NoSuchAlgorithmException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchPaddingException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvalidKeyException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalBlockSizeException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (BadPaddingException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("no");
+			break;
 		}
-		
-		
+		}
 	}
-
-
 }

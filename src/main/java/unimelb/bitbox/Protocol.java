@@ -68,7 +68,7 @@ public class Protocol
 
 			response.append("command", Constants.Command.CONNECT_PEER_REQUEST.toString());
 			response.append("host", args[0]);
-			response.append("port", args[1]);
+			response.append("port", Integer.parseInt(args[1]));
 			
 			break;
 			
@@ -83,7 +83,7 @@ public class Protocol
 
 			response.append("command", Constants.Command.DISCONNECT_PEER_REQUEST.toString());
 			response.append("host", args[0]);
-			response.append("port", args[1]);
+			response.append("port", Integer.parseInt(args[1]));
 			
 			break;
 			

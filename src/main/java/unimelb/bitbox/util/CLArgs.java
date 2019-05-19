@@ -10,8 +10,11 @@ public class CLArgs
 	@Option(required = false, name = "-p", usage = "Peer")
 	private String peerHostPort;
 
-	@Option(required = true, name = "-c", aliases = {"--host"}, usage = "Command")
+	@Option(required = true, name = "-c", aliases = {"--command"}, usage = "Command")
 	private String command;
+	
+	@Option(required = true, name = "-i", aliases = {"--identity"}, usage = "Identity")
+	private String identity;
 
 	
 
@@ -26,6 +29,11 @@ public class CLArgs
 	public String getCommand() {
 		return command;
 	}
+	
+	public String getIdentity() {
+		return identity;
+	}
+
 
 }
 
