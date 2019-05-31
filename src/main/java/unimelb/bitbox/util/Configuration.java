@@ -1,8 +1,10 @@
 package unimelb.bitbox.util;
 
 import java.io.FileInputStream;
+import java.util.Scanner;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,6 +37,18 @@ public class Configuration {
         } catch (IOException e) {
             log.warning("Could not read file " + CONFIGURATION_FILE);
         }
+    }
+    
+    public static HashMap<String,String> getAuthKeys()
+    {
+    	HashMap<String,String> authKeys=new HashMap<String,String>();
+    	String[] strKeys = getConfigurationValue("authorized_keys").split(",");
+    	for (String strKey: strKeys)
+    	{
+    		String identity = strKey.substring(strKey.lastIndexOf(" ")+1);
+    		authKeys.put(identity,strKey);
+    	}
+    	return authKeys;
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
