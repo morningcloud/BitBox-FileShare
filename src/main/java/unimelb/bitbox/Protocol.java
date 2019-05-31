@@ -186,7 +186,7 @@ public class Protocol {
 					 was sent.*/
 					if(!connectionManager.activePeerHostPort.containsKey(connectingPeer.toString())) {
 						connectionManager.rememberUDPConnection(connectingPeer);
-						new UDPReceiverConsumer(connectionManager, connectingPeer);
+						new UDPReceiverConsumer(connectionManager, connectingPeer).start();
 					}
 					log.info(String.format("Connected to: %s, total number of established connections: %s\n",
 							connectingPeer, connectionManager.getUDPRememberedConnectionCount()));

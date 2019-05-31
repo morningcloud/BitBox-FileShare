@@ -1,5 +1,6 @@
 package unimelb.bitbox;
 
+import java.io.IOException;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -73,7 +74,7 @@ public class ConnectionManager implements NetworkObserver {
 			connection = new Connection(socket, this, source);
 			
 			activePeerConnection.put(connection.peer.toString(),connection);
-			activePeerHostPort.put(connection.peer.toString(),peerHostPort);
+			activePeerHostPort.put(connection.peer.toString(),peerHostPort);//valid for both TCP and UDP
 			
 			new Thread(connection).start();
 			
@@ -259,5 +260,76 @@ public class ConnectionManager implements NetworkObserver {
 			}
 			
 	}
+	/**
+	 * Fulfils a Client's request to connect to a specific Peer
+	 * @param peer: HostPort
+	 * @return true if connection is established, false if not.
+	 */
+	public boolean connectPeer(HostPort peer)
+	{
+		boolean status=false;
+		//TODO should have a switch for UDP and TCP
+		//TCP code:
+		if (this.activePeerHostPort.size()<=this.MAX_NO_OF_CONNECTION) 
+		{
+			try
+			{
+				Socket socket = new Socket(peer.host,peer.port);
+				if (socket!=null)
+				{
+					this.addConnection(socket, Constants.PeerSource.SERVER, peer);
+					status = true;
+				}
+			} catch (UnknownHostException e)
+			{
+				e.printStackTrace();
+			} catch (IOException e)
+			{
+				e.printStackTrace();
+			}
+		}
 		
+		return status;
+	}
+	
+	/**
+	 * Fulfils a Client's request to disconnect to a specific Peer
+	 * @param peer: HostPort
+	 * @return true if connection is established, false if not.
+	 */
+	public boolean disconnectPeer(HostPort peer)
+	{
+		boolean status=false;
+		//TODO adding code to disconnect a peer
+		//TCP code:
+		String peerKey=null;
+		
+		for (String p: this.activePeerHostPort.keySet())
+		{
+			if (this.activePeerHostPort.get(p).equals(peer)) peerKey=p;
+		}
+
+		if (peerKey!=null)
+		{
+			if(Peer.mode.equals("tcp")) {
+				Connection c = this.activePeerConnection.get(peerKey);
+				c.stop();
+				this.activePeerConnection.remove(peerKey);
+				this.activePeerHostPort.remove(peerKey);
+				log.info(String.format("Peer %s has been disconnected based on client request",peer.toString()));
+				status = true;
+			}
+			else if(Peer.mode.equals("udp")) {
+				
+				this.activePeerHostPort.remove(peerKey.toString());
+				if(this.temporaryUDPRememberedConnections.containsKey(peerKey.toString())) {
+					this.temporaryUDPRememberedConnections.remove(peerKey.toString());
+				}
+				log.info(String.format("Peer %s has been un-remembered based on client request",peer.toString()));
+				status = true;
+			}
+		}
+		
+		return status;
+	}
 }

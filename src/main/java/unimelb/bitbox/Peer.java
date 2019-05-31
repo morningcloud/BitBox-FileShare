@@ -65,20 +65,28 @@ public class Peer
         incomingMessagesQ = new LinkedBlockingQueue<>();
         if (Peer.mode.equals("tcp")) {
         	serverHostPort = new HostPort(serverName,serverPort);
-        	Peer.initializeVariables(serverHostPort);
+        	Peer.initializeComponents(serverHostPort);
         	
         }else if (Peer.mode.equals("udp")) {
         	serverHostPort = new HostPort(serverName,udpServerPort);  
-        	Peer.initializeVariables(serverHostPort);
+        	Peer.initializeComponents(serverHostPort);
         }else {
         	log.info("Peer Class Says: Incorrect mode in Configuration File... Exitin the system");
         	System.exit(0);
         }
         	
     }  
-        private static void initializeVariables(HostPort serverHostPort) {
+        private static void initializeComponents(HostPort serverHostPort) {
             //Also connection manager is common (Will maintain active connections established by either client or server part of the peer).
             ConnectionManager connectionManager = new ConnectionManager(maximumIncommingConnections, serverHostPort, incomingMessagesQ);
+           
+            try {
+            	new Thread(new AuthenticationServer(connectionManager), "Authentication Server Thread").start();
+			} catch (NumberFormatException | IOException e) {
+				// TODO Check This
+				e.printStackTrace();
+			}
+            
             
             if(Peer.mode.equals("tcp")) {
                 //Start server component thread
@@ -100,10 +108,10 @@ public class Peer
                 Thread producerThread=new Thread(new UDPPortProducer(), "UDPPortListener Thread");
                 producerThread.start();
                 
-               //new Thread(new UDPHandShakeServer(connectionManager), "UDPHanhdshakeServer Thread").start();
+                //new Thread(new UDPHandShakeServer(connectionManager), "UDPHanhdshakeServer Thread").start();
                 
                 //Start client component thread
-               new UDPClient(connectionManager);
+                new UDPClient(connectionManager);
             	
             }
 
