@@ -11,8 +11,8 @@ public class Constants{
 	public static final int SECRET_KEY_SIZE = 16;
 	public static final String RSA_ALGORITHM = "RSA/ECB/PKCS1Padding";
 	public static final String PRIVATE_KEY_FILE_NAME = "bitboxclient_rsa";
-	public static final int UDP_NUMBER_OF_RETRIES = Integer.parseInt(Configuration.getConfigurationValue("udpretries"));
-	public static final int UDP_TIMEOUT = Integer.parseInt(Configuration.getConfigurationValue("udptimeout"));
+	public static final int UDP_NUMBER_OF_RETRIES = Integer.parseInt(Configuration.getConfigurationValue("udpRetries"));
+	public static final int UDP_TIMEOUT = Integer.parseInt(Configuration.getConfigurationValue("udpTimeout"));
 	public static final int MAX_BLOCK_SIZE_FOR_UDP = 8189;
 	public static final int INSTANCE_BLOCK_SIZE = Math.min(Constants.MAX_BLOCK_SIZE_FOR_UDP,Integer.parseInt(Configuration.getConfigurationValue("blockSize")));
 	

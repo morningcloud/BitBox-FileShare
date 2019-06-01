@@ -16,6 +16,7 @@ import java.net.SocketTimeoutException;
 import java.security.Key;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
@@ -38,9 +39,9 @@ import unimelb.bitbox.util.Constants.PeerSource;
 public class UDPPortProducer extends Thread {
 	public static DatagramSocket serverSocketUDP = null;
 	public static int UDPListenerPort = 
-			Integer.parseInt(Configuration.getConfigurationValue("udpport"));
-	public static volatile BlockingQueue<DatagramPacket> udpPacketsQueue = new LinkedBlockingQueue<DatagramPacket>();
-	private static final int block_size = 65507;//maximum UDP datagram size
+			Integer.parseInt(Configuration.getConfigurationValue("udpPort"));
+	public static BlockingQueue<DatagramPacket> udpPacketsQueue = new ArrayBlockingQueue<DatagramPacket>(500000);//value must be optimzed as per load. This acts as buffer
+	private static final int expectedDatagramSize = 65507;//maximum UDP datagram size
 	private static Logger log = Logger.getLogger(UDPPortProducer.class.getName());
 
 	
@@ -52,10 +53,17 @@ public class UDPPortProducer extends Thread {
 			log.info("UDPPortProducer has started listening at port: " + UDPListenerPort);	
 		
 			while(true) {			
-					byte[] blockToReceive = new byte[block_size];
+					byte[] blockToReceive = new byte[expectedDatagramSize];
 					DatagramPacket receivedPacket = new DatagramPacket(blockToReceive, blockToReceive.length);
 					serverSocketUDP.receive(receivedPacket);
-					boolean added = UDPPortProducer.udpPacketsQueue.add(receivedPacket);
+					try {
+						UDPPortProducer.udpPacketsQueue.put(receivedPacket);
+					}catch (InterruptedException e) {
+						continue;						
+					}catch (NullPointerException ne) {
+						log.severe("Attempt to add null to the UDPQueue....cannot let it happen.... continuing");
+						continue;
+					}
 					//System.out.println(added);
 			}
 		}catch(BindException be) {

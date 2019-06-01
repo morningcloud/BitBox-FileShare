@@ -86,7 +86,7 @@ public class UDPClient {
 							// The line below will temporarily stop UDPHandShakeServer to consume
 							// packets from UnknownSource pHostPort. This packet will now only
 							// be consumed for Handshake consumers.
-							if(!connectionManager.temporaryUDPRememberedConnections.containsKey(pHostPort.host.toString())) {								
+							if(!connectionManager.temporaryUDPRememberedConnections.containsKey(pHostPort.toString())) {								
 								connectionManager.temporaryUDPRememberedConnections.put(pHostPort.toString(), pHostPort);
 								log.severe("Temporary key has been added for handShake for Peer:...."+pHostPort.toString());
 							}else{
@@ -94,8 +94,8 @@ public class UDPClient {
 										+ ". Breaking the Thread");
 								break;
 							}
-							log.severe("Handshake Attempt: " + attemptsOfHandShakes);
-							log.warning(this.getName() + ":"
+							log.info("Handshake Attempt: " + attemptsOfHandShakes);
+							log.info(this.getName() + ":"
 									+ String.format("Sending Handshake to peer=%s:%s...", pHostPort.host, pHostPort.port));
 							String hsr = Protocol.createMessage(Constants.Command.HANDSHAKE_REQUEST, null);
 							udpSend.sendBitBoxMessage(pHostPort, hsr);
@@ -163,8 +163,6 @@ public class UDPClient {
 															break;
 													} else if (Protocol.validateHSResponse(rxMsg)) {//Connection Successful
 															Document hostPort = (Document) rxMsg.get("hostPort");
-															log.info("Connection established to " + hostPort.getString("host") + " at port "
-																	+ hostPort.getLong("port"));
 															
 															/* This if condition is necessary because 
 															 a Consumer thread is started after sending
@@ -179,7 +177,14 @@ public class UDPClient {
 															if(!connectionManager.activePeerHostPort.containsKey(pHostPort.toString())) {
 																connectionManager.rememberUDPConnection(pHostPort);
 																new UDPReceiverConsumer(connectionManager, pHostPort).start();
+																log.info("remote host  " + pHostPort.toString() + " has been remembered by UDPClient after receiving handshake response");
 															}
+															else {
+																log.warning(String.format("Connection established to %s. but was already in active peer Queue!\n",
+																		hostPort.getString("host") +":" + hostPort.getLong("port")));
+															}
+															log.info(String.format("Connection established to %s, total number of established connections: %s\n",
+																	hostPort.getString("host") +":" + hostPort.getLong("port"), connectionManager.getUDPRememberedConnectionCount()));
 															
 													} else {// Nothing is validated, Sending InvalidProtocol
 														
@@ -225,6 +230,7 @@ public class UDPClient {
 			
 			}catch(NullPointerException ne){
 				log.severe("Null Pointer Exeption in UDPCLient "+ this.getName());
+				ne.printStackTrace();
 			}			
 			catch (Exception e){
 				log.severe(this.getName() + ":"

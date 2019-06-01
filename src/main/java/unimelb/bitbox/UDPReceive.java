@@ -56,7 +56,7 @@ public class UDPReceive {
 
 	
 		
-	public synchronized String receiveBitBoxMessage(HostPort hostPort, Integer time_out) {
+	public String receiveBitBoxMessage(HostPort hostPort, Integer time_out) {
 
 		String message = null;
 		InetAddress iPAddress;
@@ -73,24 +73,27 @@ public class UDPReceive {
 	}
 	
 	
-	public synchronized String receiveBitBoxMessage(InetAddress expectedRemoteIP, int expectedRemotePort, Integer time_out) {
+	public String receiveBitBoxMessage(InetAddress expectedRemoteIP, int expectedRemotePort, Integer time_out) {
 		boolean isTimeOutRequired = true;
 		
 		//null means default, 0 means no time_out
-		if (time_out != null && !time_out.equals(0)) {//case of  a user_defined time out is required
-			this.TIME_OUT = time_out;
-			System.out.println("Timeout is: " + TIME_OUT);
+		if (time_out != null) {//case of  a user_defined time out is required
+			
+			if (time_out.equals(0)) {// no time out case
+				System.out.println("No Time Out Set");
+				isTimeOutRequired = false;			
+			}else if(time_out > 0) {
+				this.TIME_OUT = time_out;
+				System.out.println("Timeout is: " + TIME_OUT);				
+			}else {
+				log.severe("Incorrect TIME_OUT Value, returning null");
+				return null;
+			} 		
 			
 		}else if (time_out == null) {// default case
 			this.TIME_OUT = Constants.UDP_TIMEOUT;
 			System.out.println("Timeout is default: " + TIME_OUT);
-		} else if (time_out.equals(0)) {// no time out case
-			System.out.println("No Time Out Set");
-			isTimeOutRequired = false;			
-		}else {
-			log.severe("Incorrect TIME_OUT Value, returning null");
-			return null;
-		} 
+		}
 
 		
 		String message = null;
@@ -154,21 +157,21 @@ public class UDPReceive {
 					DatagramPacket receivedDatagram = null;
 					//while(!UDPPortListener.udpPacketsQueue.isEmpty()) {	
 					while(true) {
-						if(!UDPPortProducer.udpPacketsQueue.isEmpty()) {
+						if(UDPPortProducer.udpPacketsQueue.size()!=0) {
 						
 							try {
 								
-
-								InetAddress receivedPacketIPAddress = UDPPortProducer.udpPacketsQueue.peek().getAddress();								
-								Integer receivedFromPort = UDPPortProducer.udpPacketsQueue.peek().getPort();								
+								DatagramPacket peekedDatagram = UDPPortProducer.udpPacketsQueue.peek();
+								InetAddress receivedPacketIPAddress = peekedDatagram.getAddress();								
+								Integer receivedFromPort = peekedDatagram.getPort();								
 								boolean fromIntendedSource = receivedPacketIPAddress.equals(expectedRemoteIP) && receivedFromPort == expectedRemotePort;
 								
 								if(fromIntendedSource) {								
-									receivedDatagram = UDPPortProducer.udpPacketsQueue.poll();							
+									receivedDatagram = UDPPortProducer.udpPacketsQueue.take();							
 									completeMessage = getMessageFromDatagram(receivedDatagram,baos );
 									completeMessage.replaceAll("\n", "");
 									completeMessage.replaceAll("\r", "");
-									//System.out.println(this.getClass().getName()+ ": Complete Message at UDP Receive is: " + completeMessage);
+									System.out.println(this.getClass().getName()+ ": Complete Message at UDP Receive is: " + completeMessage);
 									break;
 									/*
 									if (completeMessage.charAt(completeMessage.length()-1) == '\n') {

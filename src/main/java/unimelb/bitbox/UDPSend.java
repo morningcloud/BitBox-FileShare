@@ -30,7 +30,7 @@ public class UDPSend {
 		// greater than maximum packet size. 
 		private static int MAX_UDP_PAYLOAD_SIZE =  65507;
 		
-			public  void sendBitBoxMessage(HostPort hostPort, String bitBoxMessage) {
+			public synchronized void sendBitBoxMessage(HostPort hostPort, String bitBoxMessage) {
 				InetAddress iPAddress;
 				try {
 					iPAddress = InetAddress.getByName(hostPort.host);
@@ -69,7 +69,7 @@ public class UDPSend {
 					            // This block from the entire bitBoxMessage
 					            // will be sent during this iteration.
 					        	
-					            byte[] datagramToSend = new byte[Math.min(messageByteArray.length, MAX_UDP_PAYLOAD_SIZE)];					            
+					            byte[] datagramToSend = new byte[Math.min(messageByteArray.length, MAX_UDP_PAYLOAD_SIZE)];// not to be confused with given block size spec					            
 					            for(int j=0; j<datagramToSend.length; j++ ) {
 					            	datagramToSend[j] = messageByteArray[datagramNumber+j];
 					            	//System.out.println(blockToSend[j]+ " "+ messageByteArray[blockNumber+j]);
@@ -88,6 +88,7 @@ public class UDPSend {
 		
 				    }catch(Exception e) {
 				    	log.info(this.getClass().getName()+"Exception in UDPSend Class: " + e);
+				    	e.printStackTrace();
 				    }
 			     }
 				

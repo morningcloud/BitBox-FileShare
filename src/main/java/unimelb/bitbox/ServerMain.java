@@ -112,7 +112,7 @@ public class ServerMain implements Runnable {
 								this.connectionManager.addConnection(clientSocket, PeerSource.SERVER, connectingPeer);
 								log.info(String.format("Connected to: %s, total number of established connections: %s\n",
 										clientSocket.getInetAddress().getHostName(),
-										this.connectionManager.activePeerConnection.size()
+										this.connectionManager.activePeerHostPort.size()
 										));
 							}
 						}

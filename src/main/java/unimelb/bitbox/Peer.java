@@ -47,7 +47,7 @@ public class Peer
 			Integer.parseInt(Configuration.getConfigurationValue("port"));
 	
 	static final int udpServerPort = 
-			Integer.parseInt(Configuration.getConfigurationValue("udpport"));
+			Integer.parseInt(Configuration.getConfigurationValue("udpPort"));
 
 	static LinkedBlockingQueue<Message> incomingMessagesQ;
 	public static HostPort serverHostPort;
@@ -82,10 +82,15 @@ public class Peer
            
             try {
             	new Thread(new AuthenticationServer(connectionManager), "Authentication Server Thread").start();
-			} catch (NumberFormatException | IOException e) {
+			} catch(BindException be) {
+				log.severe("AuthorizationServer Port already in Use.....Exiting the system");
+				System.exit(0);
+				
+			}
+            catch (NumberFormatException | IOException e) {
 				// TODO Check This
 				e.printStackTrace();
-			}
+			} 
             
             
             if(Peer.mode.equals("tcp")) {
@@ -120,7 +125,7 @@ public class Peer
             //start the event processor
             EventProcessor eventProcess= new EventProcessor(connectionManager);
             Thread eventProcessor = new Thread(eventProcess);
-            //eventProcessor.start();
+            eventProcessor.start();
             
             
             long syncInterval = Long.parseLong(Configuration.getConfigurationValue("syncInterval")) * 1000; //get time in milli
@@ -130,7 +135,7 @@ public class Peer
             							public void run() {
             								while(true) {
     	        								log.info("Time for Sync");
-    	        								if(connectionManager.activePeerConnection.size()>0)
+    	        								if(connectionManager.activePeerHostPort.size()>0)
     	        									eventProcess.processSyncEvents();
     	        								try {
     												Thread.sleep(syncInterval);

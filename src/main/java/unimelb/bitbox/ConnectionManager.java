@@ -48,7 +48,9 @@ public class ConnectionManager implements NetworkObserver {
 	Map<String, Connection> activePeerConnection;
 	HostPort serverHostPort;
 	private BlockingQueue<Message> incomingMessagesQueue;
-
+	
+	public static final String CONNECTION_MODE = Configuration.getConfigurationValue("mode").toLowerCase();
+	
 	public ConnectionManager(int maxNoOfConnections, HostPort serverHostPort, BlockingQueue<Message> MessageQueue)
 	{
 		this.MAX_NO_OF_CONNECTION = maxNoOfConnections;
@@ -104,45 +106,148 @@ public class ConnectionManager implements NetworkObserver {
 		String jsonMessage = msg.getJsonMessage();
 		sendAllPeers(jsonMessage);
 	}
-	
+
 	public void sendAllPeers(String msg) {
 		String jsonMessage = msg;
-		if(activePeerConnection.size()<=0)
-			log.warning("No Active connected Peers available to send message... Dropped");
-		for (Connection conn:activePeerConnection.values())
-		{
-			try{
-				log.info(String.format("Sending to %s, Message: %s",conn.peer.toString(),jsonMessage));
-				conn.send(jsonMessage, false);
+		if (CONNECTION_MODE.toLowerCase().contentEquals("udp")) {
+			//TODO GHD Fill
+			if(activePeerHostPort.size() <= 0)
+				log.warning("No Active connected Peers available to send message... Dropped");
+			for (HostPort peer:activePeerHostPort.values())
+			{
+				try{
+					log.info(String.format("Sending to %s, Message: %s",peer.toString(),jsonMessage));
+					sendUDPPeerMsg(peer, jsonMessage, true);
+				}
+				catch(Exception e){
+					log.warning("Unable to send message to peer "+peer.toString()+" message: "+jsonMessage);
+				}
 			}
-			catch(Exception e){
-				log.warning("Unable to send message to peer "+conn.peer.toString()+" message: "+jsonMessage);
-			}
-		}
-	}
-	
-	public void sendToPeer(HostPort peer, Message msg, boolean terminateAfter) {
-		String jsonMessage = msg.getJsonMessage();
-		sendToPeer(peer, jsonMessage, terminateAfter);
-	}
-	
-	public void sendToPeer(HostPort peer, String jsonMessage, boolean terminateAfter) {
-		//get the active connection to the specific peer
-		Connection conn=activePeerConnection.get(peer.toString());
-		if (conn!=null)
-		{
-			try{
-				log.info(String.format("Sending to %s, Message: %s",conn.peer.toString(),jsonMessage));
-				conn.send(jsonMessage, terminateAfter);
-			}
-			catch(Exception e){
-				log.warning("Unable to send message to peer "+conn.peer.toString()+" message: "+jsonMessage);
-			}
-		}
+		}			
 		else {
-			log.info(String.format("No active connection found with peer %s to send. could be dropped. Message: %s", peer.toString(), jsonMessage));
+			if(activePeerConnection.size()<=0)
+				log.warning("No Active connected Peers available to send message... Dropped");
+			for (Connection conn:activePeerConnection.values())
+			{
+				try{
+					log.info(String.format("Sending to %s, Message: %s",conn.peer.toString(),jsonMessage));
+					conn.send(jsonMessage, false);
+				}
+				catch(Exception e){
+					log.warning("Unable to send message to peer "+conn.peer.toString()+" message: "+jsonMessage);
+				}
+			}
 		}
 	}
+	
+	public void sendToPeer(HostPort peer, Message msg, boolean terminateAfter, boolean isWithRetry) {
+		String jsonMessage = msg.getJsonMessage();
+		sendToPeer(peer, jsonMessage, terminateAfter,isWithRetry);
+	}
+	
+	public void sendToPeer(HostPort peer, String jsonMessage, boolean terminateAfter, boolean isWithRetry) {
+		if (CONNECTION_MODE.toLowerCase().contentEquals("udp")) {
+			sendUDPPeerMsg(peer, jsonMessage, isWithRetry);
+		}			
+		else {
+			//get the active connection to the specific peer
+			Connection conn=activePeerConnection.get(peer.toString());
+			if (conn!=null)
+			{
+				try{
+					log.info(String.format("Sending to %s, Message: %s",conn.peer.toString(),jsonMessage));
+					conn.send(jsonMessage, terminateAfter);
+				}
+				catch(Exception e){
+					log.warning("Unable to send message to peer "+conn.peer.toString()+" message: "+jsonMessage);
+				}
+			}
+			else {
+				log.info(String.format("No active connection found with peer %s to send. could be dropped. Message: %s", peer.toString(), jsonMessage));
+			}
+		}
+	}
+	
+	private void sendUDPPeerMsg(HostPort peer, String jsonMessage, boolean isWithRetry) {
+		UDPSend udpSender = new UDPSend();
+		//udpSender.sendBitBoxMessage(peer, jsonMessage);
+		try{
+			
+			//UDPSend udpSender = new UDPSend();
+			UDPReceive udpReceiver= new UDPReceive();
+			int sendAttemptsCount = 0;
+			boolean sent=false;
+
+			// The line below will temporarily stop UDPHandShakeServer to consume
+			// packets from UnknownSource pHostPort. This packet will now only
+			// be consumed for Handshake consumers.
+			if(!temporaryUDPSuspendedConsmers.containsKey(peer.toString())) {								
+				temporaryUDPSuspendedConsmers.put(peer.toString(), peer);
+				log.warning("Temporary suspend UDP consumer for send message to Peer:...."+peer.toString());
+			}
+			
+			while (!sent && sendAttemptsCount < Constants.UDP_NUMBER_OF_RETRIES)
+			{
+				log.info(String.format("Attempt %s, Sending UDP to %s, Message: %s",sendAttemptsCount,peer.toString(),jsonMessage));
+				udpSender.sendBitBoxMessage(peer, jsonMessage);
+				
+				if (isWithRetry) {
+					String responseMsg= udpReceiver.receiveBitBoxMessage(peer, Constants.UDP_TIMEOUT);						
+					//TODO Verify the message received if it is a response put back to queue otherwise
+					
+					log.info("UDPResponse Received Message-Response from peer " + peer.toString() + " is : "+ responseMsg);
+					if (responseMsg != null) {
+						if (responseMsg.equals("time_out")) { //retry to connect within connection attempts.
+							sendAttemptsCount++;
+							log.warning(String.format("TimeOut Received while waiting response. Attempting resend to peer=%s...attempt no %d", peer.toString(),
+									sendAttemptsCount));
+							}
+							else {//Message is neither null, nor time out, so process it.
+								messageReceived(peer, responseMsg);
+								sent = true;
+								// After confirming message sending, enable consumer process to get new messages
+								temporaryUDPSuspendedConsmers.remove(peer.toString());
+						} 
+					}
+				}
+				else //Fire and forget so set sent status as true directly after first send attempt
+				{
+					sent = true;
+					// After confirming message sending, enable consumer process to get new messages
+					temporaryUDPSuspendedConsmers.remove(peer.toString());
+				}
+			}
+			//if after retries the message is still lost, something is wrong with this peer we should terminate and consider it as closed connection
+			if (!sent && sendAttemptsCount >= Constants.UDP_NUMBER_OF_RETRIES)
+			{
+				log.severe(String.format("Failed to send message after %s attempts, disconnecting peer %s",sendAttemptsCount,peer.toString()));
+				UDPConnectionClosed(peer);
+			}
+		}
+		catch(Exception e){
+			log.warning("Unable to send message to peer "+peer.toString()+" message: "+jsonMessage);
+		}
+	}
+
+
+	
+	/** 
+	 * To be called any time we need to forget the peer from active UDP, as there is no active connection concept
+	 * @param connectionID
+	 */
+	public void UDPConnectionClosed(HostPort connectionID) {
+		try {
+			log.info("UDPConnectionClosed triggered. Removing UDP Peer from active connection list "+connectionID.toString());
+
+			activePeerHostPort.remove(connectionID.toString());
+			temporaryUDPSuspendedConsmers.remove(connectionID.toString());
+			temporaryUDPRememberedConnections.remove(connectionID.toString());
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+
 	
 	public int getActiveConnectionCountBySource(PeerSource source) {
 		int count = 0;
@@ -172,7 +277,7 @@ public class ConnectionManager implements NetworkObserver {
 	}
 	
 	public int getActiveConnectionCount() {
-		return activePeerConnection.size();
+		return activePeerHostPort.size();
 	}
 	
 	public void rememberUDPConnection(HostPort peerHostPort)
@@ -245,14 +350,14 @@ public class ConnectionManager implements NetworkObserver {
 				log.severe("TE: messageReceived.catch.JsonParserException:"+message);
 				String[] msg = new String[1];
 				msg[0] = e.getMessage();
-				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg), true);
+				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg), true, false);
 			} 
 			catch (InvalidCommandException e) {
 				//Error during message parsing, return invalid protocol to sender
 				String[] msg = new String[1];
 				msg[0] = e.getMessage();
 				log.severe("TE: messageReceived.catch.InvalidCommandException:"+message);
-				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg), true);
+				sendToPeer(connectionID, Protocol.createMessage(Command.INVALID_PROTOCOL, msg), true, false);
 				log.severe("Message parsing failed "+e.getMessage());
 			} 
 			catch (Exception e) {
@@ -270,7 +375,7 @@ public class ConnectionManager implements NetworkObserver {
 		boolean status=false;
 		//TODO should have a switch for UDP and TCP
 		//TCP code:
-		if (this.activePeerHostPort.size()<=this.MAX_NO_OF_CONNECTION) 
+		if (this.activePeerHostPort.size() < this.MAX_NO_OF_CONNECTION) 
 		{
 			try
 			{
@@ -287,6 +392,10 @@ public class ConnectionManager implements NetworkObserver {
 			{
 				e.printStackTrace();
 			}
+		}
+		else
+		{
+			//TODO GHD WE SHOULD HANDEL THIS, return proper message
 		}
 		
 		return status;
@@ -322,12 +431,13 @@ public class ConnectionManager implements NetworkObserver {
 			else if(Peer.mode.equals("udp")) {
 				
 				this.activePeerHostPort.remove(peerKey.toString());
-				if(this.temporaryUDPRememberedConnections.containsKey(peerKey.toString())) {
-					this.temporaryUDPRememberedConnections.remove(peerKey.toString());
-				}
+				this.temporaryUDPRememberedConnections.remove(peerKey.toString());
 				log.info(String.format("Peer %s has been un-remembered based on client request",peer.toString()));
 				status = true;
 			}
+		}
+		else {
+			//TODO GHD Need to respond that peer was not found, not already connected or something!
 		}
 		
 		return status;

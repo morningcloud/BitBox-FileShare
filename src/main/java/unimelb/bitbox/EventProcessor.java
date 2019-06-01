@@ -149,7 +149,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 			//Handling all possible file system manager events.
 			Message msg = constructEventMessage(pathevent);
 			if (msg!=null)
-				connectionManager.sendToPeer(peer, msg, false);
+				connectionManager.sendToPeer(peer, msg, false, true);
 		}
 	}
 	
@@ -286,7 +286,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 				case HANDSHAKE_REQUEST:
 					//At this stage the handshake would have been established and validated already... 
 					//so this request should be rejected
-					connectionManager.sendToPeer(senderPeer, Protocol.createMessage(Command.INVALID_PROTOCOL, "was not expecting a HANDSHAKE_REQUEST".split(";")), true);
+					connectionManager.sendToPeer(senderPeer, Protocol.createMessage(Command.INVALID_PROTOCOL, "was not expecting a HANDSHAKE_REQUEST".split(";")), true, false);
 					break;
 				case INVALID_PROTOCOL:
 					//If received here, something is wrong with one of our messages or peer have issue processing a proper message!
@@ -297,7 +297,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 					
 				default:
 					//construct invalid protocol message
-					connectionManager.sendToPeer(senderPeer, Protocol.createMessage(Command.INVALID_PROTOCOL, "unknown command".split(";")), true);
+					connectionManager.sendToPeer(senderPeer, Protocol.createMessage(Command.INVALID_PROTOCOL, "unknown command".split(";")), true, false);
 					break;
 			}
 
@@ -839,7 +839,7 @@ public class EventProcessor implements FileSystemObserver, Runnable
 	private void sendResponse(Message responseMessage) {
 		//After processing send the response message back to peer
 		try {
-			connectionManager.sendToPeer(responseMessage.getFromAddress(), responseMessage, false);
+			connectionManager.sendToPeer(responseMessage.getFromAddress(), responseMessage, false, true);
 		}
 		catch (Exception e) {
 			log.severe("Error sending event process response! Event dropped");

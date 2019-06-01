@@ -1,5 +1,8 @@
 package unimelb.bitbox;
 
+import java.io.ByteArrayOutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.util.logging.Logger;
 
@@ -42,25 +45,41 @@ public class UDPHandShakeServer implements Runnable {
 		
 		while(true) {
 			try {	
+				
 				//Document handshakeMsg = null;
 				String inmsg = null;
-				if (!UDPPortProducer.udpPacketsQueue.isEmpty()) {
-						remoteIPAddress = UDPPortProducer.udpPacketsQueue.peek().getAddress();
-						remotePort = UDPPortProducer.udpPacketsQueue.peek().getPort();
-						connectingPeer = new HostPort(remoteIPAddress.toString(),remotePort);
-						log.severe("Receiving from unknown host.....:" +remoteIPAddress+":"+remotePort);
-						
+				if (UDPPortProducer.udpPacketsQueue.size() !=0) {
+						boolean fromUnknownSource = false;
+						try {
+							DatagramPacket peekedDatagram =  UDPPortProducer.udpPacketsQueue.peek();
+							remoteIPAddress = peekedDatagram.getAddress();						
+							remotePort = peekedDatagram.getPort();
+							
+							connectingPeer = new HostPort(remoteIPAddress.getHostAddress(),remotePort);
+							System.out.println("HandshakeServer has searched Queue and found host: " + connectingPeer);	
+							
+							fromUnknownSource = !connectionManager.temporaryUDPRememberedConnections.containsKey(connectingPeer.toString())
+									&& !connectionManager.activePeerHostPort.containsKey(connectingPeer.toString());
+							System.out.println("is Host From Unknown Source: " + fromUnknownSource);
+						}catch (NullPointerException e) {
+							log.severe(this.getClass()+": Null Pointer Exception while peeking queue....packet not for me.....nothing serious....continuing");
+							continue;
+						}
 						// The if statement below will keep consuming
 						// packets from non-remembered sources. It is doing so					
 						// because Datagrams from peers initiating handshake
 						// request are from non-remembered peers.
-						if (!connectionManager.temporaryUDPRememberedConnections.containsKey(connectingPeer.toString())) {
-							log.info("UDPHandShakeServer has received a Datagram from Unknown Source from Queue.");
-							log.info(String.format("UDPHandShakeServer has started UDPReceive to start forming"
-									+ " message from bytes: Remote %s:%s.", remoteIPAddress,remotePort.toString()));
-							inmsg = udpReceive.receiveBitBoxMessage(remoteIPAddress, remotePort, null);// second parameter in timeout. null means default.
+						if (fromUnknownSource) {
+							log.info("UDPHandShakeServer has received a Datagram from Unknown Source from Queue." +connectingPeer.toString() );
+							
+							DatagramPacket receivedDatagram = UDPPortProducer.udpPacketsQueue.take();							
+							String completeMessage = getMessageFromDatagram(receivedDatagram);
+							completeMessage.replaceAll("\n", "");
+							completeMessage.replaceAll("\r", "");
+							
+							inmsg = completeMessage;
 							//System.out.println("Size Of inmsg is: " + inmsg.length());
-							log.info("1. UDPHandShakeServer has received the compiled message: "+ inmsg);	
+							log.info("1. UDPHandShakeServer has received the message: "+ inmsg + " from unknown source "+ connectingPeer.toString());	
 							
 							
 							String responsOfHandShakeRequest = Protocol.createUDPHandShakeResponse(inmsg, connectionManager);
@@ -71,12 +90,42 @@ public class UDPHandShakeServer implements Runnable {
 	
 				}					
 			}
+			
 			catch (Exception e) {
-				log.severe("General Exception in UDPHandShakeServer..... Continuing Listening");
+				log.severe("General Exception in UDPHandShakeServer..... Continuing Listening: " +e);
+				e.printStackTrace();
 				continue;
 			}
 		}
 				
+	}
+	
+	private String getMessageFromDatagram(DatagramPacket receivedDatagram )
+			  {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			String messageInThisBlock = null;
+		
+			int lengthOfMessage = receivedDatagram.getLength();				
+			byte[] dataToReceive  =new byte[lengthOfMessage];
+			//System.out.println("Length of blockToReceive before is :" + initialBlockToReceive.length);									
+			dataToReceive = receivedDatagram.getData();
+			byte[] blockToReceive = new byte[lengthOfMessage];
+			
+			for(int b=0; b<lengthOfMessage; b++) {
+				blockToReceive[b] = dataToReceive[b];
+			}
+			
+			baos.write(blockToReceive, 0, blockToReceive.length);
+			try {
+				messageInThisBlock = baos.toString("UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				log.severe("Unsupported Encoding From Unknow Source");
+				return null;
+			}
+		
+				
+		return messageInThisBlock;
+		
 	}
 	
 

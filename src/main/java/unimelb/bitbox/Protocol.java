@@ -187,6 +187,7 @@ public class Protocol {
 					if(!connectionManager.activePeerHostPort.containsKey(connectingPeer.toString())) {
 						connectionManager.rememberUDPConnection(connectingPeer);
 						new UDPReceiverConsumer(connectionManager, connectingPeer).start();
+						log.info("HandShakeServer has added Host " + connectingPeer.toString() + " to UDP remembered list after sending Handshake_Response");
 					}
 					log.info(String.format("Connected to: %s, total number of established connections: %s\n",
 							connectingPeer, connectionManager.getUDPRememberedConnectionCount()));
@@ -207,6 +208,7 @@ public class Protocol {
 
 		} catch (Exception e2) {
 			log.severe("General exception while processing method createUDPHandShakeResponse");
+			e2.printStackTrace();
 		}
 
 		return Protocol.invalidProtocol(); // If neither HSRefued not HSResponse, return InvalidP
